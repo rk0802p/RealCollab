@@ -1,0 +1,28 @@
+{
+  "name": "realcollab-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:web": "npm run dev --workspace=@realcollab/web",
+    "dev:collab": "npm run dev --workspace=@realcollab/collaboration-server",
+    "build": "npm run build --workspaces --if-present",
+    "build:web": "npm run build --workspace=@realcollab/web",
+    "build:collab": "npm run build --workspace=@realcollab/collaboration-server",
+    "build:shared": "npm run build --workspace=@realcollab/shared",
+    "prisma:generate": "npm run prisma:generate --workspace=@realcollab/shared",
+    "prisma:migrate": "npm run prisma:migrate --workspace=@realcollab/shared",
+    "prisma:seed": "npm run prisma:seed --workspace=@realcollab/shared",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}

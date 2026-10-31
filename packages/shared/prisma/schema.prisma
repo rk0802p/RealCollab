@@ -1,0 +1,166 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum WorkspaceRole {
+  OWNER
+  EDITOR
+  COMMENTER
+  VIEWER
+}
+
+model User {
+  id           String            @id @default(cuid())
+  email        String            @unique
+  passwordHash String
+  name         String
+  avatarUrl    String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  ownedWorkspaces    Workspace[]       @relation("WorkspaceOwner")
+  workspaceMemberships WorkspaceMember[]
+  createdPages       Page[]            @relation("PageCreator")
+  createdSnapshots   DocumentSnapshot[] @relation("SnapshotCreator")
+  comments           Comment[]
+  commentReplies     CommentReply[]
+  sentInvitations    Invitation[]      @relation("Inviter")
+
+  @@index([email])
+}
+
+model Workspace {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  owner       User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  members     WorkspaceMember[]
+  pages       Page[]
+  invitations Invitation[]
+
+  @@index([ownerId])
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(EDITOR)
+  joinedAt    DateTime      @default(now())
+
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+model Page {
+  id          String             @id @default(cuid())
+  workspaceId String
+  parentId    String?
+  title       String             @default("Untitled")
+  icon        String?
+  coverImage  String?
+  isArchived  Boolean            @default(false)
+  createdById String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator     User               @relation("PageCreator", fields: [createdById], references: [id])
+  parent      Page?              @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Page[]             @relation("PageHierarchy")
+
+  updates     DocumentUpdate[]
+  snapshots   DocumentSnapshot[]
+  comments    Comment[]
+
+  @@index([workspaceId])
+  @@index([parentId])
+}
+
+model DocumentUpdate {
+  id          String   @id @default(cuid())
+  pageId      String
+  updateBytes Bytes
+  createdAt   DateTime @default(now())
+
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, createdAt])
+}
+
+model DocumentSnapshot {
+  id            String   @id @default(cuid())
+  pageId        String
+  snapshotBytes Bytes
+  createdById   String?
+  description   String?
+  createdAt     DateTime @default(now())
+
+  page          Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  creator       User?    @relation("SnapshotCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([pageId, createdAt])
+}
+
+model Comment {
+  id         String         @id @default(cuid())
+  pageId     String
+  authorId   String
+  content    String
+  anchorData Json?
+  resolved   Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  page       Page           @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  author     User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies    CommentReply[]
+
+  @@index([pageId])
+  @@index([authorId])
+}
+
+model CommentReply {
+  id        String   @id @default(cuid())
+  commentId String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+  @@index([authorId])
+}
+
+model Invitation {
+  id          String        @id @default(cuid())
+  workspaceId String
+  email       String
+  role        WorkspaceRole @default(EDITOR)
+  tokenHash   String        @unique
+  inviterId   String
+  expiresAt   DateTime
+  createdAt   DateTime      @default(now())
+
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  inviter     User          @relation("Inviter", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([email])
+}

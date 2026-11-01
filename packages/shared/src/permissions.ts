@@ -1,4 +1,6 @@
-export type WorkspaceRole = 'OWNER' | 'EDITOR' | 'COMMENTER' | 'VIEWER';
+import { WorkspaceRole } from '@prisma/client';
+
+export type { WorkspaceRole };
 
 export interface RolePermissions {
   canViewPages: boolean;

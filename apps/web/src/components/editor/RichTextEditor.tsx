@@ -1,89 +1,226 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { EditorToolbar } from './EditorToolbar';
+import Underline from '@tiptap/extension-underline';
+import Link from '@tiptap/extension-link';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import TextAlign from '@tiptap/extension-text-align';
+import Placeholder from '@tiptap/extension-placeholder';
+import { EditorToolbar, SaveStatus } from './EditorToolbar';
+import { SlashCommandsMenu } from './SlashCommandsMenu';
 
 interface RichTextEditorProps {
-  pageId?: string;
-  initialContent?: string;
-  onContentChange?: (content: string) => void;
+  pageId: string;
+  initialTitle?: string;
+  initialIcon?: string;
+  initialContent?: string | null;
+  onSave?: (pageId: string, data: { title?: string; content?: string }) => Promise<void>;
   onOpenComments?: () => void;
   onOpenHistory?: () => void;
   commentsCount?: number;
 }
 
 export function RichTextEditor({
-  pageId = 'page-1',
-  initialContent = `<h1>Real-Time Collaborative Workspace (FS-02)</h1>
-<p>Welcome to <strong>RealCollab</strong>! This workspace demonstrates <em>conflict-free concurrent editing</em>, ephemeral awareness, and durable persistence.</p>
-<blockquote>"The best way to solve multiplayer concurrency is not locking, but mathematically provable convergence." — CRDT Principles</blockquote>
-<h3>Implementation Highlights</h3>
-<ul>
-  <li><strong>Yjs CRDT Engine</strong>: Merges concurrent edits deterministically.</li>
-  <li><strong>Live Cursors</strong>: Real-time caret tracking with lib0 and Awareness protocol.</li>
-  <li><strong>Stateful WebSocket Daemon</strong>: Decoupled from serverless Next.js edge.</li>
-  <li><strong>Redis Pub/Sub</strong>: Horizontal clustering across collaboration instances.</li>
-</ul>
-<pre><code>// Connecting TipTap to Yjs
-import { WebsocketProvider } from 'y-websocket';
-const provider = new WebsocketProvider(COLLAB_WS_URL, roomName, ydoc);
-</code></pre>`,
-  onContentChange,
+  pageId,
+  initialTitle = 'Untitled Document',
+  initialIcon = '📝',
+  initialContent,
+  onSave,
   onOpenComments,
   onOpenHistory,
-  commentsCount = 1,
+  commentsCount = 0,
 }: RichTextEditorProps) {
-  const [mounted, setMounted] = useState(false);
+  const [title, setTitle] = useState(initialTitle);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [slashMenuOpen, setSlashMenuOpen] = useState(false);
+  const [slashMenuPos, setSlashMenuPos] = useState({ top: 0, left: 0 });
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialMount = useRef(true);
 
+  // Sync title when initialTitle changes from parent
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setTitle(initialTitle);
+  }, [initialTitle]);
+
+  const defaultContent = initialContent || `<h1>${initialTitle}</h1>
+<p>Start drafting your collaborative document or type <code>/</code> for block commands.</p>
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Complete project setup</p></div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Draft technical specification</p></div></li>
+</ul>
+<blockquote>"Ideas become reality when teams collaborate in real time."</blockquote>`;
 
   const editor = useEditor({
-    extensions: [StarterKit],
-    content: initialContent,
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Placeholder.configure({
+        placeholder: "Type '/' for commands or start writing...",
+      }),
+    ],
+    content: defaultContent,
     editorProps: {
       attributes: {
-        class:
-          'prose prose-invert max-w-none focus:outline-none min-h-[500px] text-slate-200 text-sm leading-relaxed p-6',
+        class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] text-slate-200 text-sm leading-relaxed px-12 py-6',
+      },
+      handleKeyDown: (_view, event) => {
+        if (event.key === '/') {
+          // Detect slash to trigger slash commands menu
+          setTimeout(() => {
+            if (!editor) return;
+            const { from } = editor.state.selection;
+            const coords = editor.view.coordsAtPos(from);
+            setSlashMenuPos({ top: coords.bottom + 8, left: coords.left });
+            setSlashMenuOpen(true);
+          }, 10);
+        } else if (event.key === 'Escape') {
+          setSlashMenuOpen(false);
+        }
+        return false;
       },
     },
     onUpdate: ({ editor }) => {
-      onContentChange?.(editor.getHTML());
+      setSaveStatus('unsaved');
+      triggerDebouncedSave(title, editor.getHTML());
     },
   });
 
-  if (!mounted || !editor) {
+  // Re-load content whenever pageId changes
+  useEffect(() => {
+    if (editor && !isInitialMount.current) {
+      const contentToSet = initialContent || `<h1>${initialTitle}</h1><p>Start writing here...</p>`;
+      editor.commands.setContent(contentToSet);
+      setSaveStatus('saved');
+    }
+    isInitialMount.current = false;
+  }, [pageId, initialContent, editor]);
+
+  // Debounced auto-save function
+  const triggerDebouncedSave = useCallback(
+    (currentTitle: string, currentContent: string) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      debounceTimerRef.current = setTimeout(async () => {
+        if (!onSave) return;
+        setSaveStatus('saving');
+        try {
+          await onSave(pageId, { title: currentTitle, content: currentContent });
+          setSaveStatus('saved');
+          setLastSavedAt(new Date());
+        } catch (err) {
+          console.error('Autosave error:', err);
+          setSaveStatus('unsaved');
+        }
+      }, 1000);
+    },
+    [pageId, onSave]
+  );
+
+  // Manual save keyboard shortcut (Ctrl+S / Cmd+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (editor && onSave) {
+          if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+          setSaveStatus('saving');
+          onSave(pageId, { title, content: editor.getHTML() })
+            .then(() => {
+              setSaveStatus('saved');
+              setLastSavedAt(new Date());
+            })
+            .catch(() => setSaveStatus('unsaved'));
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editor, pageId, title, onSave]);
+
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+    setSaveStatus('unsaved');
+    if (editor) {
+      triggerDebouncedSave(newTitle, editor.getHTML());
+    }
+  };
+
+  const handleManualSlashOpen = () => {
+    if (!editor) return;
+    const { from } = editor.state.selection;
+    const coords = editor.view.coordsAtPos(from);
+    setSlashMenuPos({ top: coords.bottom + 8, left: Math.max(20, coords.left) });
+    setSlashMenuOpen(true);
+  };
+
+  if (!editor) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-12 text-slate-500">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mb-3" />
-        <span className="text-xs">Initializing editor engine...</span>
+        <span className="text-xs">Initializing rich-text editor...</span>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background min-h-0 overflow-y-auto">
+    <div className="flex-1 flex flex-col bg-background min-h-0 overflow-y-auto relative">
+      {/* Formatting & Controls Toolbar */}
       <EditorToolbar
-        onToggleBold={() => editor.chain().focus().toggleBold().run()}
-        onToggleItalic={() => editor.chain().focus().toggleItalic().run()}
-        onToggleH1={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        onToggleH2={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        onToggleH3={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        onToggleBulletList={() => editor.chain().focus().toggleBulletList().run()}
-        onToggleOrderedList={() => editor.chain().focus().toggleOrderedList().run()}
-        onToggleBlockquote={() => editor.chain().focus().toggleBlockquote().run()}
-        onToggleCodeBlock={() => editor.chain().focus().toggleCodeBlock().run()}
+        editor={editor}
+        saveStatus={saveStatus}
+        lastSavedAt={lastSavedAt}
         onOpenComments={onOpenComments}
         onOpenHistory={onOpenHistory}
+        onOpenSlashMenu={handleManualSlashOpen}
         commentsCount={commentsCount}
       />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto py-8 px-6">
+      {/* Main Document Content Canvas */}
+      <main className="flex-1 max-w-4xl w-full mx-auto py-10 px-6">
+        {/* Document Header: Icon & Editable Title */}
+        <div className="mb-6 px-12 group">
+          <div className="text-4xl mb-3 select-none inline-block hover:scale-110 transition cursor-pointer">
+            {initialIcon}
+          </div>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            placeholder="Untitled Document"
+            className="w-full text-3xl font-bold bg-transparent text-slate-100 placeholder-slate-600 focus:outline-none border-b border-transparent focus:border-slate-800 pb-1 transition"
+          />
+        </div>
+
+        {/* TipTap Document Area */}
         <EditorContent editor={editor} />
       </main>
+
+      {/* Floating Slash Commands Menu */}
+      <SlashCommandsMenu
+        editor={editor}
+        isOpen={slashMenuOpen}
+        onClose={() => setSlashMenuOpen(false)}
+        position={slashMenuPos}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModa
 import { ManageMembersModal } from '@/components/workspace/ManageMembersModal';
 import { Collaborator, ConnectionStatus } from '@/types';
 import { WorkspaceSummary, UserSummary } from '@realcollab/shared';
+import { useCollaboration } from '@/hooks/useCollaboration';
 
 export default function WorkspacePage() {
   const router = useRouter();
@@ -22,7 +23,6 @@ export default function WorkspacePage() {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [createWsOpen, setCreateWsOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connected');
   const [loading, setLoading] = useState(true);
 
   // Load active user and workspaces on mount
@@ -96,6 +96,20 @@ export default function WorkspacePage() {
     loadPage();
   }, [activePageId]);
 
+  // Real-time Yjs Collaboration & Awareness hook
+  const {
+    ydoc,
+    provider,
+    status: wsStatus,
+    collaborators: liveCollaborators,
+    userColor,
+  } = useCollaboration({
+    workspaceId: activeWorkspaceId,
+    pageId: activePageId,
+    user: currentUser,
+    userRole: currentWorkspace?.currentUserRole,
+  });
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
@@ -164,13 +178,15 @@ export default function WorkspacePage() {
     content: null,
   };
 
-  // Convert workspace members to collaborator presence badges
-  const collaborators: Collaborator[] = (currentWorkspace?.members || []).map((m: any, idx: number) => ({
+  // Convert workspace members to fallback collaborator presence badges if no live websocket peers
+  const fallbackCollaborators: Collaborator[] = (currentWorkspace?.members || []).map((m: any, idx: number) => ({
     clientId: idx + 1,
     name: m.user.name,
     color: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'][idx % 4],
     role: m.role,
   }));
+
+  const activeCollaborators = liveCollaborators.length > 0 ? liveCollaborators : fallbackCollaborators;
 
   if (loading) {
     return (
@@ -204,19 +220,23 @@ export default function WorkspacePage() {
         <WorkspaceHeader
           pageTitle={activePage.title}
           icon={activePage.icon}
-          collaborators={collaborators}
-          connectionStatus={connectionStatus}
+          collaborators={activeCollaborators}
+          connectionStatus={wsStatus}
           role={currentWorkspace?.currentUserRole || 'EDITOR'}
           onShare={() => setMembersModalOpen(true)}
         />
 
         <div className="flex-1 flex overflow-hidden relative">
           <RichTextEditor
-            key={activePageId}
+            key={`${activePageId}-${activeWorkspaceId}`}
             pageId={activePageId}
             initialTitle={activePage.title}
             initialIcon={activePage.icon}
             initialContent={activePage.content}
+            ydoc={ydoc}
+            provider={provider}
+            userRole={currentWorkspace?.currentUserRole}
+            user={currentUser ? { name: currentUser.name, color: userColor } : null}
             onSave={handleSavePage}
             onOpenComments={() => setCommentsOpen(!commentsOpen)}
             onOpenHistory={() => alert('Version history: will be connected in Phase 7.')}

@@ -28,6 +28,8 @@ interface RichTextEditorProps {
     name: string;
     color: string;
   } | null;
+  typingUsers?: string[];
+  onTyping?: (isTyping: boolean) => void;
   onSave?: (pageId: string, data: { title?: string; content?: string }) => Promise<void>;
   onOpenComments?: () => void;
   onOpenHistory?: () => void;
@@ -43,6 +45,8 @@ export function RichTextEditor({
   provider,
   userRole = 'EDITOR',
   user,
+  typingUsers = [],
+  onTyping,
   onSave,
   onOpenComments,
   onOpenHistory,
@@ -112,7 +116,6 @@ export function RichTextEditor({
             ]
           : []),
       ],
-      // If using Yjs collaboration, Y.Doc manages the content state; otherwise use defaultContent
       content: ydoc ? undefined : defaultContent,
       editorProps: {
         attributes: {
@@ -120,6 +123,9 @@ export function RichTextEditor({
         },
         handleKeyDown: (_view, event) => {
           if (!canEdit) return true;
+          if (event.key !== 'Escape') {
+            onTyping?.(true);
+          }
           if (event.key === '/') {
             setTimeout(() => {
               if (!editor) return;
@@ -136,6 +142,7 @@ export function RichTextEditor({
       },
       onUpdate: ({ editor }) => {
         setSaveStatus('unsaved');
+        onTyping?.(true);
         triggerDebouncedSave(title, editor.getHTML());
       },
     },
@@ -190,6 +197,7 @@ export function RichTextEditor({
     if (!canEdit) return;
     setTitle(newTitle);
     setSaveStatus('unsaved');
+    onTyping?.(true);
     if (editor) {
       triggerDebouncedSave(newTitle, editor.getHTML());
     }
@@ -253,6 +261,22 @@ export function RichTextEditor({
         onClose={() => setSlashMenuOpen(false)}
         position={slashMenuPos}
       />
+
+      {/* Live Active Editing / Typing Indicator Toast */}
+      {typingUsers && typingUsers.length > 0 && (
+        <div className="fixed bottom-6 right-8 bg-surface/95 border border-slate-700/80 text-xs px-3.5 py-2 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-slate-200 z-40 transition-all">
+          <div className="flex gap-1 items-center">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce" />
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce [animation-delay:0.2s]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce [animation-delay:0.4s]" />
+          </div>
+          <span className="font-medium text-[11px]">
+            {typingUsers.length === 1
+              ? `${typingUsers[0]} is editing...`
+              : `${typingUsers.slice(0, 2).join(', ')}${typingUsers.length > 2 ? ` +${typingUsers.length - 2}` : ''} are editing...`}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

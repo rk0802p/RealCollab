@@ -76,6 +76,22 @@ function getOrCreateRoom(roomName: string, pageId: string): RoomState {
 
     awareness.on('update', ({ added, updated, removed }: any, origin: any) => {
       const changedClients = added.concat(updated, removed);
+
+      if (origin && conns.has(origin)) {
+        const connControlledIDs = conns.get(origin);
+        if (connControlledIDs) {
+          added.forEach((clientID: number) => {
+            connControlledIDs.add(clientID);
+          });
+          updated.forEach((clientID: number) => {
+            connControlledIDs.add(clientID);
+          });
+          removed.forEach((clientID: number) => {
+            connControlledIDs.delete(clientID);
+          });
+        }
+      }
+
       const encoder = encoding.createEncoder();
       encoding.writeVarUint(encoder, messageAwareness);
       encoding.writeVarUint8Array(
@@ -199,7 +215,9 @@ wss.on('connection', (conn: WebSocket, _req: http.IncomingMessage, context: any)
         case messageSync: {
           // If user is a VIEWER or COMMENTER, verify they are not attempting an unauthorized mutation
           if (user.role === 'VIEWER' || user.role === 'COMMENTER') {
-            const syncStep = decoding.readVarUint(decoder);
+            const peekDecoder = decoding.createDecoder(uint8Msg);
+            decoding.readVarUint(peekDecoder); // consume messageSync (0)
+            const syncStep = decoding.readVarUint(peekDecoder);
             if (syncStep === syncProtocol.messageYjsUpdate) {
               console.warn(`[RBAC] Blocked update from read-only client ${user.name} (${user.role})`);
               return;
@@ -236,7 +254,7 @@ wss.on('connection', (conn: WebSocket, _req: http.IncomingMessage, context: any)
     console.log(`[WS] Client disconnected from room: ${parsedRoom.raw}`);
     const controlledIds = room.conns.get(conn);
     room.conns.delete(conn);
-    if (controlledIds) {
+    if (controlledIds && controlledIds.size > 0) {
       awarenessProtocol.removeAwarenessStates(
         room.awareness,
         Array.from(controlledIds),

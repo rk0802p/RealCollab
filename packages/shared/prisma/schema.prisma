@@ -70,6 +70,7 @@ model Page {
   workspaceId String
   parentId    String?
   title       String             @default("Untitled")
+  content     String?            @db.Text
   icon        String?
   coverImage  String?
   isArchived  Boolean            @default(false)

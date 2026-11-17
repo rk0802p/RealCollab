@@ -33,6 +33,7 @@ export const createPageSchema = z.object({
 
 export const updatePageSchema = z.object({
   title: z.string().min(1).optional(),
+  content: z.string().nullable().optional(),
   icon: z.string().nullable().optional(),
   coverImage: z.string().nullable().optional(),
   isArchived: z.boolean().optional(),

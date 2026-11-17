@@ -20,6 +20,7 @@ export interface PageSummary {
   workspaceId: string;
   parentId?: string | null;
   title: string;
+  content?: string | null;
   icon?: string | null;
   coverImage?: string | null;
   updatedAt: string;

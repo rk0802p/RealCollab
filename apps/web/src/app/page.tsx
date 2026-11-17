@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader';
@@ -9,7 +9,7 @@ import { CommentsSidebar } from '@/components/comments/CommentsSidebar';
 import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal';
 import { ManageMembersModal } from '@/components/workspace/ManageMembersModal';
 import { Collaborator, ConnectionStatus } from '@/types';
-import { WorkspaceRole, WorkspaceSummary, UserSummary } from '@realcollab/shared';
+import { WorkspaceSummary, UserSummary } from '@realcollab/shared';
 
 export default function WorkspacePage() {
   const router = useRouter();
@@ -18,6 +18,7 @@ export default function WorkspacePage() {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>('');
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
   const [activePageId, setActivePageId] = useState<string>('');
+  const [activePageDetails, setActivePageDetails] = useState<any>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [createWsOpen, setCreateWsOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
@@ -65,6 +66,9 @@ export default function WorkspacePage() {
           setCurrentWorkspace(workspace);
           if (workspace.pages?.length > 0) {
             setActivePageId(workspace.pages[0].id);
+          } else {
+            setActivePageId('');
+            setActivePageDetails(null);
           }
         }
       } catch (err) {
@@ -73,6 +77,24 @@ export default function WorkspacePage() {
     }
     loadWorkspaceDetails();
   }, [activeWorkspaceId]);
+
+  // Load active page details (content, icon, permissions) when activePageId changes
+  useEffect(() => {
+    if (!activePageId) return;
+
+    async function loadPage() {
+      try {
+        const res = await fetch(`/api/pages/${activePageId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setActivePageDetails(data.page);
+        }
+      } catch (err) {
+        console.error('Error loading page details:', err);
+      }
+    }
+    loadPage();
+  }, [activePageId]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -85,7 +107,7 @@ export default function WorkspacePage() {
       const res = await fetch(`/api/workspaces/${activeWorkspaceId}/pages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'New Collaborative Page', icon: '📄' }),
+        body: JSON.stringify({ title: 'Untitled Document', icon: '📝' }),
       });
       if (res.ok) {
         const { page } = await res.json();
@@ -96,19 +118,53 @@ export default function WorkspacePage() {
           });
         }
         setActivePageId(page.id);
+        setActivePageDetails(page);
       }
     } catch (err) {
       console.error('Failed to create page:', err);
     }
   };
 
-  const activePage = currentWorkspace?.pages?.find((p: any) => p.id === activePageId) || {
-    id: 'default',
+  const handleSavePage = useCallback(
+    async (pageId: string, data: { title?: string; content?: string }) => {
+      const res = await fetch(`/api/pages/${pageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to save document');
+      }
+
+      const { page } = await res.json();
+      setActivePageDetails((prev: any) => ({ ...prev, ...page }));
+
+      // Update title in sidebar list
+      if (data.title && currentWorkspace) {
+        setCurrentWorkspace((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            pages: (prev.pages || []).map((p: any) =>
+              p.id === pageId ? { ...p, title: data.title } : p
+            ),
+          };
+        });
+      }
+    },
+    [currentWorkspace]
+  );
+
+  const activePage = activePageDetails || currentWorkspace?.pages?.find((p: any) => p.id === activePageId) || {
+    id: activePageId || 'default',
     title: 'Collaborative Document',
     icon: '📝',
+    content: null,
   };
 
-  // Convert workspace members to collaborator badges
+  // Convert workspace members to collaborator presence badges
   const collaborators: Collaborator[] = (currentWorkspace?.members || []).map((m: any, idx: number) => ({
     clientId: idx + 1,
     name: m.user.name,
@@ -143,7 +199,7 @@ export default function WorkspacePage() {
         onLogout={handleLogout}
       />
 
-      {/* Main editor and collaboration area */}
+      {/* Main editor and canvas area */}
       <div className="flex-1 flex flex-col min-w-0 h-full relative">
         <WorkspaceHeader
           pageTitle={activePage.title}
@@ -156,16 +212,21 @@ export default function WorkspacePage() {
 
         <div className="flex-1 flex overflow-hidden relative">
           <RichTextEditor
+            key={activePageId}
             pageId={activePageId}
+            initialTitle={activePage.title}
+            initialIcon={activePage.icon}
+            initialContent={activePage.content}
+            onSave={handleSavePage}
             onOpenComments={() => setCommentsOpen(!commentsOpen)}
-            onOpenHistory={() => alert('Version history: loaded in Phase 7.')}
+            onOpenHistory={() => alert('Version history: will be connected in Phase 7.')}
             commentsCount={0}
           />
 
           <CommentsSidebar
             isOpen={commentsOpen}
             onClose={() => setCommentsOpen(false)}
-            onAddComment={(text) => alert(`Added comment: "${text}"`)}
+            onAddComment={(text) => alert(`Comment thread created: "${text}"`)}
             onResolveComment={(id) => alert(`Toggled resolved for comment ${id}`)}
           />
         </div>

@@ -102,7 +102,9 @@ export default function WorkspacePage() {
     provider,
     status: wsStatus,
     collaborators: liveCollaborators,
+    typingUsers,
     userColor,
+    setLocalTyping,
   } = useCollaboration({
     workspaceId: activeWorkspaceId,
     pageId: activePageId,
@@ -237,6 +239,8 @@ export default function WorkspacePage() {
             provider={provider}
             userRole={currentWorkspace?.currentUserRole}
             user={currentUser ? { name: currentUser.name, color: userColor } : null}
+            typingUsers={typingUsers}
+            onTyping={setLocalTyping}
             onSave={handleSavePage}
             onOpenComments={() => setCommentsOpen(!commentsOpen)}
             onOpenHistory={() => alert('Version history: will be connected in Phase 7.')}

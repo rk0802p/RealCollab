@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { Collaborator, ConnectionStatus } from '@/types';
@@ -27,6 +27,7 @@ export function useCollaboration({
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [isSynced, setIsSynced] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const userColor = useMemo(() => {
     return user ? generateUserColor(user.id || user.name) : '#3B82F6';
@@ -59,6 +60,8 @@ export function useCollaboration({
       avatar: user?.avatarUrl || undefined,
       role: userRole,
       userId: user?.id,
+      isTyping: false,
+      lastActive: Date.now(),
     });
 
     const handleStatus = ({ status }: { status: string }) => {
@@ -78,10 +81,13 @@ export function useCollaboration({
         if (state.user) {
           active.push({
             clientId,
+            userId: state.user.userId,
             name: state.user.name || 'Anonymous',
             color: state.user.color || '#3B82F6',
             avatar: state.user.avatar,
             role: state.user.role || 'EDITOR',
+            isTyping: Boolean(state.user.isTyping),
+            lastActive: state.user.lastActive,
           });
         }
       });
@@ -95,6 +101,7 @@ export function useCollaboration({
     setCollabInstances({ ydoc: doc, provider: prov });
 
     return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       prov.off('status', handleStatus);
       prov.off('sync', handleSync);
       prov.awareness.off('change', handleAwareness);
@@ -107,12 +114,51 @@ export function useCollaboration({
     };
   }, [workspaceId, pageId, user?.id, user?.name, user?.avatarUrl, userRole, userColor]);
 
+  // Set typing indicator with auto-reset after 1.5 seconds of inactivity
+  const setLocalTyping = useCallback(
+    (isTyping: boolean) => {
+      if (!collabInstances?.provider) return;
+      const awareness = collabInstances.provider.awareness;
+      const current = awareness.getLocalState()?.user || {};
+
+      awareness.setLocalStateField('user', {
+        ...current,
+        isTyping,
+        lastActive: Date.now(),
+      });
+
+      if (isTyping) {
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+          const fresh = awareness.getLocalState()?.user || {};
+          awareness.setLocalStateField('user', {
+            ...fresh,
+            isTyping: false,
+            lastActive: Date.now(),
+          });
+        }, 1500);
+      }
+    },
+    [collabInstances]
+  );
+
+  // List of other users who are currently typing
+  const typingUsers = useMemo(() => {
+    if (!collabInstances?.provider) return [];
+    const myClientId = collabInstances.provider.awareness.clientID;
+    return collaborators
+      .filter((c) => c.clientId !== myClientId && c.isTyping)
+      .map((c) => c.name);
+  }, [collaborators, collabInstances]);
+
   return {
     ydoc: collabInstances?.ydoc || null,
     provider: collabInstances?.provider || null,
     status,
     collaborators,
+    typingUsers,
     isSynced,
     userColor,
+    setLocalTyping,
   };
 }

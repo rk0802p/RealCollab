@@ -9,7 +9,7 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import dotenv from 'dotenv';
 import { parseRoomName } from './middleware/connectionGuard';
-import { authenticateConnectionToken } from './auth/tokenAuth';
+import { authenticateConnectionToken, AuthenticatedUser } from './auth/tokenAuth';
 import { persistence } from './persistence/documentPersistence';
 import { RedisPubSubManager } from './redis/pubsub';
 
@@ -53,8 +53,8 @@ function getOrCreateRoom(roomName: string, pageId: string): RoomState {
     const conns = new Map<WebSocket, Set<number>>();
 
     doc.on('update', (update: Uint8Array, origin: any) => {
-      // Debounced/async persistence
-      persistence.saveUpdate(pageId, update).catch(console.error);
+      // Debounced persistence to PostgreSQL
+      persistence.saveUpdate(pageId, update, doc).catch(console.error);
 
       // Publish to Redis for multi-instance scaling
       if (origin !== 'redis') {
@@ -115,6 +115,13 @@ app.get('/health', (_req, res) => {
   });
 });
 
+// Helper to extract cookie from cookie header
+function parseCookie(cookieHeader: string | undefined, name: string): string | null {
+  if (!cookieHeader) return null;
+  const match = cookieHeader.match(new RegExp(`(^|;\\s*)(${name})=([^;]*)`));
+  return match ? decodeURIComponent(match[3]) : null;
+}
+
 // HTTP Upgrade to WebSocket
 server.on('upgrade', async (request, socket, head) => {
   try {
@@ -128,11 +135,14 @@ server.on('upgrade', async (request, socket, head) => {
       return;
     }
 
-    // Extract auth token from query params or headers
+    // Extract auth token from query params or cookie
     const fullUrl = new URL(url, `http://${request.headers.host || 'localhost'}`);
-    const token = fullUrl.searchParams.get('token');
+    let token = fullUrl.searchParams.get('token');
+    if (!token) {
+      token = parseCookie(request.headers.cookie, 'realcollab_session');
+    }
 
-    const authUser = await authenticateConnectionToken(token);
+    const authUser = await authenticateConnectionToken(token, parsedRoom.workspaceId);
     if (!authUser) {
       console.warn(`[WS] Unauthorized connection attempt to room: ${parsedRoom.raw}`);
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -151,7 +161,7 @@ server.on('upgrade', async (request, socket, head) => {
 
 // WebSocket Connection Management
 wss.on('connection', (conn: WebSocket, _req: http.IncomingMessage, context: any) => {
-  const { room: parsedRoom, user } = context;
+  const { room: parsedRoom, user } = context as { room: { raw: string; workspaceId: string; pageId: string }; user: AuthenticatedUser };
   const room = getOrCreateRoom(parsedRoom.raw, parsedRoom.pageId);
   room.conns.set(conn, new Set());
 
@@ -189,7 +199,6 @@ wss.on('connection', (conn: WebSocket, _req: http.IncomingMessage, context: any)
         case messageSync: {
           // If user is a VIEWER or COMMENTER, verify they are not attempting an unauthorized mutation
           if (user.role === 'VIEWER' || user.role === 'COMMENTER') {
-            // Read sync step
             const syncStep = decoding.readVarUint(decoder);
             if (syncStep === syncProtocol.messageYjsUpdate) {
               console.warn(`[RBAC] Blocked update from read-only client ${user.name} (${user.role})`);

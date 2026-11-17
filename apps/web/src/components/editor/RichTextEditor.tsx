@@ -9,6 +9,10 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
 import { EditorToolbar, SaveStatus } from './EditorToolbar';
 import { SlashCommandsMenu } from './SlashCommandsMenu';
 
@@ -17,6 +21,13 @@ interface RichTextEditorProps {
   initialTitle?: string;
   initialIcon?: string;
   initialContent?: string | null;
+  ydoc?: Y.Doc | null;
+  provider?: WebsocketProvider | null;
+  userRole?: 'OWNER' | 'EDITOR' | 'COMMENTER' | 'VIEWER';
+  user?: {
+    name: string;
+    color: string;
+  } | null;
   onSave?: (pageId: string, data: { title?: string; content?: string }) => Promise<void>;
   onOpenComments?: () => void;
   onOpenHistory?: () => void;
@@ -28,6 +39,10 @@ export function RichTextEditor({
   initialTitle = 'Untitled Document',
   initialIcon = '📝',
   initialContent,
+  ydoc,
+  provider,
+  userRole = 'EDITOR',
+  user,
   onSave,
   onOpenComments,
   onOpenHistory,
@@ -39,7 +54,8 @@ export function RichTextEditor({
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashMenuPos, setSlashMenuPos] = useState({ top: 0, left: 0 });
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitialMount = useRef(true);
+
+  const canEdit = userRole === 'OWNER' || userRole === 'EDITOR';
 
   // Sync title when initialTitle changes from parent
   useEffect(() => {
@@ -54,63 +70,77 @@ export function RichTextEditor({
 </ul>
 <blockquote>"Ideas become reality when teams collaborate in real time."</blockquote>`;
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
-      Underline,
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-      }),
-      TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      Placeholder.configure({
-        placeholder: "Type '/' for commands or start writing...",
-      }),
-    ],
-    content: defaultContent,
-    editorProps: {
-      attributes: {
-        class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] text-slate-200 text-sm leading-relaxed px-12 py-6',
+  const editor = useEditor(
+    {
+      editable: canEdit,
+      extensions: [
+        StarterKit.configure({
+          heading: { levels: [1, 2, 3] },
+          history: ydoc ? false : {},
+        }),
+        Underline,
+        Link.configure({
+          openOnClick: false,
+          autolink: true,
+        }),
+        TaskList,
+        TaskItem.configure({
+          nested: true,
+        }),
+        TextAlign.configure({
+          types: ['heading', 'paragraph'],
+        }),
+        Placeholder.configure({
+          placeholder: canEdit ? "Type '/' for commands or start writing..." : 'Read-only document',
+        }),
+        ...(ydoc
+          ? [
+              Collaboration.configure({
+                document: ydoc,
+              }),
+            ]
+          : []),
+        ...(provider && ydoc && user
+          ? [
+              CollaborationCursor.configure({
+                provider,
+                user: {
+                  name: user.name,
+                  color: user.color,
+                },
+              }),
+            ]
+          : []),
+      ],
+      // If using Yjs collaboration, Y.Doc manages the content state; otherwise use defaultContent
+      content: ydoc ? undefined : defaultContent,
+      editorProps: {
+        attributes: {
+          class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] text-slate-200 text-sm leading-relaxed px-12 py-6',
+        },
+        handleKeyDown: (_view, event) => {
+          if (!canEdit) return true;
+          if (event.key === '/') {
+            setTimeout(() => {
+              if (!editor) return;
+              const { from } = editor.state.selection;
+              const coords = editor.view.coordsAtPos(from);
+              setSlashMenuPos({ top: coords.bottom + 8, left: coords.left });
+              setSlashMenuOpen(true);
+            }, 10);
+          } else if (event.key === 'Escape') {
+            setSlashMenuOpen(false);
+          }
+          return false;
+        },
       },
-      handleKeyDown: (_view, event) => {
-        if (event.key === '/') {
-          // Detect slash to trigger slash commands menu
-          setTimeout(() => {
-            if (!editor) return;
-            const { from } = editor.state.selection;
-            const coords = editor.view.coordsAtPos(from);
-            setSlashMenuPos({ top: coords.bottom + 8, left: coords.left });
-            setSlashMenuOpen(true);
-          }, 10);
-        } else if (event.key === 'Escape') {
-          setSlashMenuOpen(false);
-        }
-        return false;
+      onUpdate: ({ editor }) => {
+        setSaveStatus('unsaved');
+        triggerDebouncedSave(title, editor.getHTML());
       },
     },
-    onUpdate: ({ editor }) => {
-      setSaveStatus('unsaved');
-      triggerDebouncedSave(title, editor.getHTML());
-    },
-  });
-
-  // Re-load content whenever pageId changes
-  useEffect(() => {
-    if (editor && !isInitialMount.current) {
-      const contentToSet = initialContent || `<h1>${initialTitle}</h1><p>Start writing here...</p>`;
-      editor.commands.setContent(contentToSet);
-      setSaveStatus('saved');
-    }
-    isInitialMount.current = false;
-  }, [pageId, initialContent, editor]);
+    [pageId, ydoc, provider, canEdit]
+  );
 
   // Debounced auto-save function
   const triggerDebouncedSave = useCallback(
@@ -157,6 +187,7 @@ export function RichTextEditor({
   }, [editor, pageId, title, onSave]);
 
   const handleTitleChange = (newTitle: string) => {
+    if (!canEdit) return;
     setTitle(newTitle);
     setSaveStatus('unsaved');
     if (editor) {
@@ -165,7 +196,7 @@ export function RichTextEditor({
   };
 
   const handleManualSlashOpen = () => {
-    if (!editor) return;
+    if (!editor || !canEdit) return;
     const { from } = editor.state.selection;
     const coords = editor.view.coordsAtPos(from);
     setSlashMenuPos({ top: coords.bottom + 8, left: Math.max(20, coords.left) });
@@ -176,7 +207,7 @@ export function RichTextEditor({
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-12 text-slate-500">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mb-3" />
-        <span className="text-xs">Initializing rich-text editor...</span>
+        <span className="text-xs">Initializing collaborative editor...</span>
       </div>
     );
   }
@@ -203,10 +234,11 @@ export function RichTextEditor({
           </div>
           <input
             type="text"
+            readOnly={!canEdit}
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="Untitled Document"
-            className="w-full text-3xl font-bold bg-transparent text-slate-100 placeholder-slate-600 focus:outline-none border-b border-transparent focus:border-slate-800 pb-1 transition"
+            className="w-full text-3xl font-bold bg-transparent text-slate-100 placeholder-slate-600 focus:outline-none border-b border-transparent focus:border-slate-800 pb-1 transition disabled:opacity-75"
           />
         </div>
 

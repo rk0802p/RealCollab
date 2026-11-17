@@ -19,6 +19,9 @@
     "prisma:seed": "npm run prisma:seed --workspace=@realcollab/shared",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
+    "db:start": "powershell -ExecutionPolicy Bypass -File scripts/local-pg.ps1 -Action start",
+    "db:stop": "powershell -ExecutionPolicy Bypass -File scripts/local-pg.ps1 -Action stop",
+    "db:status": "powershell -ExecutionPolicy Bypass -File scripts/local-pg.ps1 -Action status",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },

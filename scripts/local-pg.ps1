@@ -5,7 +5,7 @@ param(
 
 $PgBin = "C:\Program Files\PostgreSQL\17\bin"
 $DataDir = Join-Path $PSScriptRoot "..\.pgdata"
-$LogFile = Join-Path $DataDir "postgres.log"
+$LogFile = Join-Path $env:TEMP "realcollab-pg.log"
 
 if (-not (Test-Path $PgBin)) {
   Write-Error "PostgreSQL 17 binaries not found at $PgBin"

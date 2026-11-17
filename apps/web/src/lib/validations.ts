@@ -38,3 +38,31 @@ export const updatePageSchema = z.object({
   coverImage: z.string().nullable().optional(),
   isArchived: z.boolean().optional(),
 });
+
+export const anchorDataSchema = z
+  .object({
+    quote: z.string().optional(),
+    from: z.number().optional(),
+    to: z.number().optional(),
+    startRelPos: z.any().optional(),
+    endRelPos: z.any().optional(),
+  })
+  .optional()
+  .nullable();
+
+export const createCommentSchema = z.object({
+  content: z.string().min(1, 'Comment cannot be empty'),
+  anchorData: anchorDataSchema,
+});
+
+export const updateCommentSchema = z.object({
+  content: z.string().min(1, 'Comment cannot be empty'),
+});
+
+export const createReplySchema = z.object({
+  content: z.string().min(1, 'Reply cannot be empty'),
+});
+
+export const resolveCommentSchema = z.object({
+  resolved: z.boolean().optional(),
+});

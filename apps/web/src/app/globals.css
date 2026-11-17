@@ -231,3 +231,21 @@ body {
   opacity: 0.35;
   border-radius: 2px;
 }
+
+/* Anchored Comment Highlights */
+.comment-anchor-highlight {
+  background-color: rgba(245, 158, 11, 0.25);
+  border-bottom: 2px solid #f59e0b;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.comment-anchor-highlight:hover {
+  background-color: rgba(245, 158, 11, 0.4);
+}
+
+.comment-anchor-highlight.active-comment {
+  background-color: rgba(245, 158, 11, 0.55);
+  outline: 1px solid #f59e0b;
+}

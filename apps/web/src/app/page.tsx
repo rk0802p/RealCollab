@@ -8,9 +8,10 @@ import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { CommentsSidebar } from '@/components/comments/CommentsSidebar';
 import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal';
 import { ManageMembersModal } from '@/components/workspace/ManageMembersModal';
-import { Collaborator, ConnectionStatus } from '@/types';
+import { Collaborator, ConnectionStatus, CommentAnchorData } from '@/types';
 import { WorkspaceSummary, UserSummary } from '@realcollab/shared';
 import { useCollaboration } from '@/hooks/useCollaboration';
+import { useComments } from '@/hooks/useComments';
 
 export default function WorkspacePage() {
   const router = useRouter();
@@ -24,6 +25,25 @@ export default function WorkspacePage() {
   const [createWsOpen, setCreateWsOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pendingAnchor, setPendingAnchor] = useState<CommentAnchorData | null>(null);
+  const [anchorToFocus, setAnchorToFocus] = useState<CommentAnchorData | null>(null);
+
+  // Real-time Comments hook for active page
+  const {
+    comments,
+    activeComments,
+    activeCommentId,
+    setActiveCommentId,
+    filter: commentsFilter,
+    setFilter: setCommentsFilter,
+    addComment,
+    updateComment,
+    deleteComment,
+    addReply,
+    toggleResolve,
+  } = useComments({
+    pageId: activePageId || null,
+  });
 
   // Load active user and workspaces on mount
   useEffect(() => {
@@ -244,14 +264,38 @@ export default function WorkspacePage() {
             onSave={handleSavePage}
             onOpenComments={() => setCommentsOpen(!commentsOpen)}
             onOpenHistory={() => alert('Version history: will be connected in Phase 7.')}
-            commentsCount={0}
+            commentsCount={activeComments.length}
+            comments={comments}
+            activeCommentId={activeCommentId}
+            onCommentClick={(id) => {
+              setActiveCommentId(id);
+              setCommentsOpen(true);
+            }}
+            onAddCommentToSelection={(anchor) => {
+              setPendingAnchor(anchor);
+              setCommentsOpen(true);
+            }}
+            anchorToFocus={anchorToFocus}
           />
 
           <CommentsSidebar
             isOpen={commentsOpen}
             onClose={() => setCommentsOpen(false)}
-            onAddComment={(text) => alert(`Comment thread created: "${text}"`)}
-            onResolveComment={(id) => alert(`Toggled resolved for comment ${id}`)}
+            comments={comments}
+            activeCommentId={activeCommentId}
+            onSelectComment={setActiveCommentId}
+            filter={commentsFilter}
+            onFilterChange={setCommentsFilter}
+            pendingAnchor={pendingAnchor}
+            onClearPendingAnchor={() => setPendingAnchor(null)}
+            onAddComment={addComment}
+            onAddReply={addReply}
+            onToggleResolve={toggleResolve}
+            onDeleteComment={deleteComment}
+            onUpdateComment={updateComment}
+            onScrollToAnchor={(anchor) => setAnchorToFocus(anchor)}
+            currentUser={currentUser}
+            userRole={currentWorkspace?.currentUserRole}
           />
         </div>
       </div>

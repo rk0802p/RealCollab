@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
@@ -11,10 +11,13 @@ import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import { MessageSquare } from 'lucide-react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { EditorToolbar, SaveStatus } from './EditorToolbar';
 import { SlashCommandsMenu } from './SlashCommandsMenu';
+import { CommentExtension } from './extensions/CommentExtension';
+import { CommentThread, CommentAnchorData } from '@/types';
 
 interface RichTextEditorProps {
   pageId: string;
@@ -34,6 +37,11 @@ interface RichTextEditorProps {
   onOpenComments?: () => void;
   onOpenHistory?: () => void;
   commentsCount?: number;
+  comments?: CommentThread[];
+  activeCommentId?: string | null;
+  onCommentClick?: (commentId: string) => void;
+  onAddCommentToSelection?: (anchor: CommentAnchorData) => void;
+  anchorToFocus?: CommentAnchorData | null;
 }
 
 export function RichTextEditor({
@@ -51,6 +59,11 @@ export function RichTextEditor({
   onOpenComments,
   onOpenHistory,
   commentsCount = 0,
+  comments = [],
+  activeCommentId = null,
+  onCommentClick,
+  onAddCommentToSelection,
+  anchorToFocus,
 }: RichTextEditorProps) {
   const [title, setTitle] = useState(initialTitle);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
@@ -58,6 +71,18 @@ export function RichTextEditor({
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashMenuPos, setSlashMenuPos] = useState({ top: 0, left: 0 });
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const commentsRef = useRef(comments);
+  commentsRef.current = comments;
+
+  const activeCommentIdRef = useRef(activeCommentId);
+  activeCommentIdRef.current = activeCommentId;
+
+  const ydocRef = useRef(ydoc);
+  ydocRef.current = ydoc;
+
+  const onCommentClickRef = useRef(onCommentClick);
+  onCommentClickRef.current = onCommentClick;
 
   const canEdit = userRole === 'OWNER' || userRole === 'EDITOR';
 
@@ -115,6 +140,12 @@ export function RichTextEditor({
               }),
             ]
           : []),
+        CommentExtension.configure({
+          getComments: () => commentsRef.current,
+          getActiveCommentId: () => activeCommentIdRef.current,
+          getYdoc: () => ydocRef.current,
+          onCommentClick: (id) => onCommentClickRef.current?.(id),
+        }),
       ],
       content: ydoc ? undefined : defaultContent,
       editorProps: {
@@ -171,6 +202,83 @@ export function RichTextEditor({
     },
     [pageId, onSave]
   );
+
+  // Trigger ProseMirror decoration updates when comments or activeCommentId changes
+  useEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      editor.view.dispatch(editor.state.tr);
+    }
+  }, [comments, activeCommentId, editor]);
+
+  // Scroll to anchor when requested
+  useEffect(() => {
+    if (!editor || !anchorToFocus) return;
+    let from = anchorToFocus.from;
+    let to = anchorToFocus.to;
+
+    if (ydoc && anchorToFocus.startRelPos && anchorToFocus.endRelPos) {
+      try {
+        const fragment = ydoc.getXmlFragment('default');
+        const startAbs = Y.createAbsolutePositionFromRelativePosition(
+          Y.createRelativePositionFromJSON(anchorToFocus.startRelPos),
+          ydoc
+        );
+        const endAbs = Y.createAbsolutePositionFromRelativePosition(
+          Y.createRelativePositionFromJSON(anchorToFocus.endRelPos),
+          ydoc
+        );
+        if (startAbs && endAbs && startAbs.index < endAbs.index) {
+          from = startAbs.index;
+          to = endAbs.index;
+        }
+      } catch {
+        // fallback
+      }
+    }
+
+    if (typeof from === 'number' && typeof to === 'number') {
+      const docSize = editor.state.doc.content.size;
+      const safeFrom = Math.max(1, Math.min(from, docSize));
+      const safeTo = Math.max(safeFrom, Math.min(to, docSize));
+      if (safeFrom < safeTo) {
+        editor.chain().focus().setTextSelection({ from: safeFrom, to: safeTo }).scrollIntoView().run();
+      }
+    }
+  }, [editor, anchorToFocus, ydoc]);
+
+  const handleCommentSelection = useCallback(() => {
+    if (!editor || !onAddCommentToSelection) return;
+    const { from, to } = editor.state.selection;
+    if (from >= to) return;
+
+    const quote = editor.state.doc.textBetween(from, to, ' ');
+    if (!quote.trim()) return;
+
+    let startRelPos = null;
+    let endRelPos = null;
+
+    if (ydoc) {
+      try {
+        const fragment = ydoc.getXmlFragment('default');
+        startRelPos = Y.relativePositionToJSON(
+          Y.createRelativePositionFromTypeIndex(fragment, from)
+        );
+        endRelPos = Y.relativePositionToJSON(
+          Y.createRelativePositionFromTypeIndex(fragment, to)
+        );
+      } catch (err) {
+        console.warn('Yjs relative position calculation error:', err);
+      }
+    }
+
+    onAddCommentToSelection({
+      quote,
+      from,
+      to,
+      startRelPos,
+      endRelPos,
+    });
+  }, [editor, ydoc, onAddCommentToSelection]);
 
   // Manual save keyboard shortcut (Ctrl+S / Cmd+S)
   useEffect(() => {
@@ -249,6 +357,55 @@ export function RichTextEditor({
             className="w-full text-3xl font-bold bg-transparent text-slate-100 placeholder-slate-600 focus:outline-none border-b border-transparent focus:border-slate-800 pb-1 transition disabled:opacity-75"
           />
         </div>
+
+        {/* Floating Bubble Menu for Selection Actions */}
+        {editor && (
+          <BubbleMenu
+            editor={editor}
+            tippyOptions={{ duration: 150 }}
+            shouldShow={({ editor, from, to }) => {
+              return from < to && !editor.state.selection.empty;
+            }}
+            className="flex items-center gap-1 bg-surface border border-slate-700/90 rounded-lg p-1 shadow-2xl backdrop-blur-md z-30"
+          >
+            {userRole !== 'VIEWER' && (
+              <button
+                type="button"
+                onClick={handleCommentSelection}
+                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-300 hover:text-amber-200 hover:bg-amber-950/40 rounded transition"
+                title="Add comment on selected text"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                <span>Comment</span>
+              </button>
+            )}
+            <div className="w-[1px] h-3.5 bg-slate-700 mx-0.5" />
+            <button
+              type="button"
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              className={`px-1.5 py-0.5 rounded text-xs transition ${editor.isActive('bold') ? 'bg-surface-card text-brand-400' : 'text-slate-300 hover:text-white'}`}
+              title="Bold"
+            >
+              <strong>B</strong>
+            </button>
+            <button
+              type="button"
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              className={`px-1.5 py-0.5 rounded text-xs transition ${editor.isActive('italic') ? 'bg-surface-card text-brand-400' : 'text-slate-300 hover:text-white'}`}
+              title="Italic"
+            >
+              <em>I</em>
+            </button>
+            <button
+              type="button"
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              className={`px-1.5 py-0.5 rounded text-xs transition ${editor.isActive('underline') ? 'bg-surface-card text-brand-400' : 'text-slate-300 hover:text-white'}`}
+              title="Underline"
+            >
+              <u>U</u>
+            </button>
+          </BubbleMenu>
+        )}
 
         {/* TipTap Document Area */}
         <EditorContent editor={editor} />

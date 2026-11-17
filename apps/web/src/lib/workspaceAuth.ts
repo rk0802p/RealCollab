@@ -76,3 +76,56 @@ export async function getPageAccess(pageId: string, userId: string) {
     membership,
   };
 }
+
+/**
+ * Validates that the user has access to a specific comment via its page workspace membership.
+ */
+export async function getCommentAccess(commentId: string, userId: string) {
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    include: {
+      page: {
+        include: {
+          workspace: true,
+        },
+      },
+      replies: {
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
+      author: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
+
+  if (!comment) {
+    throw new Error('COMMENT_NOT_FOUND');
+  }
+
+  const membership = await getWorkspaceMembership(comment.page.workspaceId, userId);
+  if (!membership) {
+    throw new Error('NOT_A_WORKSPACE_MEMBER');
+  }
+
+  return {
+    comment,
+    membership,
+  };
+}

@@ -6,12 +6,14 @@ import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { CommentsSidebar } from '@/components/comments/CommentsSidebar';
+import { VersionHistorySidebar } from '@/components/history/VersionHistorySidebar';
 import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal';
 import { ManageMembersModal } from '@/components/workspace/ManageMembersModal';
 import { Collaborator, ConnectionStatus, CommentAnchorData } from '@/types';
 import { WorkspaceSummary, UserSummary } from '@realcollab/shared';
 import { useCollaboration } from '@/hooks/useCollaboration';
 import { useComments } from '@/hooks/useComments';
+import { useVersionHistory } from '@/hooks/useVersionHistory';
 
 export default function WorkspacePage() {
   const router = useRouter();
@@ -22,6 +24,7 @@ export default function WorkspacePage() {
   const [activePageId, setActivePageId] = useState<string>('');
   const [activePageDetails, setActivePageDetails] = useState<any>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [createWsOpen, setCreateWsOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,6 +45,19 @@ export default function WorkspacePage() {
     addReply,
     toggleResolve,
   } = useComments({
+    pageId: activePageId || null,
+  });
+
+  // Version History & Snapshots hook for active page
+  const {
+    snapshots,
+    previewingSnapshot,
+    previewContent,
+    createNamedSnapshot,
+    previewSnapshot,
+    exitPreview,
+    restoreSnapshot,
+  } = useVersionHistory({
     pageId: activePageId || null,
   });
 
@@ -262,18 +278,33 @@ export default function WorkspacePage() {
             typingUsers={typingUsers}
             onTyping={setLocalTyping}
             onSave={handleSavePage}
-            onOpenComments={() => setCommentsOpen(!commentsOpen)}
-            onOpenHistory={() => alert('Version history: will be connected in Phase 7.')}
+            onOpenComments={() => {
+              setCommentsOpen(!commentsOpen);
+              if (historyOpen) setHistoryOpen(false);
+            }}
+            onOpenHistory={() => {
+              setHistoryOpen(!historyOpen);
+              if (commentsOpen) setCommentsOpen(false);
+            }}
+            isHistoryPreviewing={Boolean(previewingSnapshot)}
+            historyPreviewContent={previewContent}
+            historyPreviewTitle={previewingSnapshot?.description}
+            onExitHistoryPreview={exitPreview}
+            onRestoreHistoryPreview={() => {
+              if (previewingSnapshot) restoreSnapshot(previewingSnapshot.id);
+            }}
             commentsCount={activeComments.length}
             comments={comments}
             activeCommentId={activeCommentId}
             onCommentClick={(id) => {
               setActiveCommentId(id);
               setCommentsOpen(true);
+              setHistoryOpen(false);
             }}
             onAddCommentToSelection={(anchor) => {
               setPendingAnchor(anchor);
               setCommentsOpen(true);
+              setHistoryOpen(false);
             }}
             anchorToFocus={anchorToFocus}
           />
@@ -295,6 +326,18 @@ export default function WorkspacePage() {
             onUpdateComment={updateComment}
             onScrollToAnchor={(anchor) => setAnchorToFocus(anchor)}
             currentUser={currentUser}
+            userRole={currentWorkspace?.currentUserRole}
+          />
+
+          <VersionHistorySidebar
+            isOpen={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            snapshots={snapshots}
+            previewingSnapshot={previewingSnapshot}
+            onPreviewSnapshot={previewSnapshot}
+            onExitPreview={exitPreview}
+            onRestoreSnapshot={restoreSnapshot}
+            onCreateCheckpoint={createNamedSnapshot}
             userRole={currentWorkspace?.currentUserRole}
           />
         </div>

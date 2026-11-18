@@ -142,18 +142,20 @@ Run the comprehensive unit test suite:
 ```bash
 npm run test --workspace=@realcollab/web
 ```
-Current test suite status: **28/28 passing**
+Current test suite status: **38/38 passing**
 - `auth.test.ts` (7 tests): Password hashing, session creation, token validation, and RBAC matrix.
 - `editor.test.ts` (4 tests): Formatting states, task lists, and slash commands.
 - `collaboration.test.ts` (4 tests): Multi-client CRDT convergence and conflict-free editing.
 - `presence.test.ts` (5 tests): Distinct cursor colors, 3-client awareness tracking, typing indicators, and disconnect cleanup.
 - `comments.test.ts` (8 tests): Anchored selection stability across concurrent document mutations, threaded replies, and resolve/reopen status.
+- `versionHistory.test.ts` (10 tests): Snapshot encoding, state reconstruction, accidental deletion recovery, and pre-restore backup preservation.
 
 Run end-to-end phase verification scripts:
 ```bash
 node scripts/verify-phase4.mjs  # Multi-client CRDT sync over WebSockets
 node scripts/verify-phase5.mjs  # Live awareness, cursors, and typing indicators
 node scripts/verify-phase6.mjs  # Anchored comments, replies, and RBAC against PostgreSQL
+node scripts/verify-phase7.mjs  # Named checkpoints, previewing, and non-destructive rollbacks
 ```
 
 ---
@@ -167,7 +169,7 @@ node scripts/verify-phase6.mjs  # Anchored comments, replies, and RBAC against P
 - [x] **Phase 4 — Yjs Real-Time Collaboration**: `y-websocket` integration, binary update persistence, and concurrent edit convergence.
 - [x] **Phase 5 — Presence, Colored Cursors & Avatars**: Ephemeral awareness, live user carets, and active typing badges.
 - [x] **Phase 6 — Threaded Comments & Inline Anchors**: `RelativePosition` anchors, comment threads, replies, and resolution.
-- [ ] **Phase 7 — Version History & Snapshots**: Named snapshots, version preview, and non-destructive rollbacks.
+- [x] **Phase 7 — Version History & Snapshots**: Named snapshots, version preview, and non-destructive rollbacks.
 - [ ] **Phase 8 — Security & Permission Enforcement**: Server-side write validation, invitation tokens, and rate limiting.
 - [ ] **Phase 9 — Multi-Instance Redis Scaling**: Redis Pub/Sub channels for cross-instance horizontal synchronization.
 - [ ] **Phase 10 — QA, Stress Testing & Production Deployment**: Multi-browser Playwright test matrix and load-test benchmarks.

@@ -42,6 +42,11 @@ interface RichTextEditorProps {
   onCommentClick?: (commentId: string) => void;
   onAddCommentToSelection?: (anchor: CommentAnchorData) => void;
   anchorToFocus?: CommentAnchorData | null;
+  isHistoryPreviewing?: boolean;
+  historyPreviewContent?: string | null;
+  historyPreviewTitle?: string | null;
+  onExitHistoryPreview?: () => void;
+  onRestoreHistoryPreview?: () => void;
 }
 
 export function RichTextEditor({
@@ -64,6 +69,11 @@ export function RichTextEditor({
   onCommentClick,
   onAddCommentToSelection,
   anchorToFocus,
+  isHistoryPreviewing = false,
+  historyPreviewContent = null,
+  historyPreviewTitle = null,
+  onExitHistoryPreview,
+  onRestoreHistoryPreview,
 }: RichTextEditorProps) {
   const [title, setTitle] = useState(initialTitle);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
@@ -341,6 +351,35 @@ export function RichTextEditor({
         commentsCount={commentsCount}
       />
 
+      {/* Historical Snapshot Preview Banner */}
+      {isHistoryPreviewing && (
+        <div className="bg-amber-950/90 border-b border-amber-600/50 px-6 py-2.5 flex items-center justify-between text-xs text-amber-200 z-20 backdrop-blur sticky top-0 shadow-lg">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="font-semibold text-amber-100">Historical Preview Mode:</span>
+            <span>{historyPreviewTitle || 'Snapshot Checkpoint'} (Read-Only)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canEdit && onRestoreHistoryPreview && (
+              <button
+                type="button"
+                onClick={onRestoreHistoryPreview}
+                className="px-3 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white font-medium transition shadow text-xs"
+              >
+                Restore this version
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onExitHistoryPreview}
+              className="px-2.5 py-1 rounded bg-surface-card hover:bg-surface text-slate-300 hover:text-white transition text-xs border border-slate-700"
+            >
+              Exit preview
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Document Content Canvas */}
       <main className="flex-1 max-w-4xl w-full mx-auto py-10 px-6">
         {/* Document Header: Icon & Editable Title */}
@@ -350,7 +389,7 @@ export function RichTextEditor({
           </div>
           <input
             type="text"
-            readOnly={!canEdit}
+            readOnly={!canEdit || isHistoryPreviewing}
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="Untitled Document"
@@ -359,7 +398,7 @@ export function RichTextEditor({
         </div>
 
         {/* Floating Bubble Menu for Selection Actions */}
-        {editor && (
+        {editor && !isHistoryPreviewing && (
           <BubbleMenu
             editor={editor}
             tippyOptions={{ duration: 150 }}
@@ -407,8 +446,14 @@ export function RichTextEditor({
           </BubbleMenu>
         )}
 
-        {/* TipTap Document Area */}
-        <EditorContent editor={editor} />
+        {/* TipTap Document Area or Historical Preview */}
+        {isHistoryPreviewing && historyPreviewContent !== null ? (
+          <div className="prose prose-invert max-w-none px-12 py-6 text-slate-200 text-sm leading-relaxed bg-surface-card/30 rounded-xl border border-amber-500/30 whitespace-pre-wrap select-text font-sans">
+            {historyPreviewContent || '(Empty document in this snapshot checkpoint)'}
+          </div>
+        ) : (
+          <EditorContent editor={editor} />
+        )}
       </main>
 
       {/* Floating Slash Commands Menu */}

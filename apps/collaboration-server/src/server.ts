@@ -15,7 +15,7 @@ import { RedisPubSubManager } from './redis/pubsub';
 
 dotenv.config();
 
-const PORT = parseInt(process.env.COLLAB_PORT || '1234', 10);
+const PORT = parseInt(process.env.COLLAB_PORT || process.env.PORT || '1234', 10);
 const HOST = process.env.COLLAB_HOST || '0.0.0.0';
 
 const app = express();

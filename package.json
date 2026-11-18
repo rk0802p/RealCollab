@@ -13,6 +13,7 @@
     "build": "npm run prisma:generate && npm run build --workspaces --if-present",
     "build:web": "npm run prisma:generate && npm run build:shared && npm run build --workspace=@realcollab/web",
     "build:collab": "npm run build --workspace=@realcollab/collaboration-server",
+    "build:render:collab": "npm run prisma:generate && npm run build:shared && npm run build:collab",
     "build:shared": "npm run build --workspace=@realcollab/shared",
     "prisma:generate": "npm run prisma:generate --workspace=@realcollab/shared",
     "prisma:migrate": "npm run prisma:migrate --workspace=@realcollab/shared",

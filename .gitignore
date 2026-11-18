@@ -48,3 +48,5 @@ next-env.d.ts
 # Local PostgreSQL cluster data & logs
 .pgdata/
 *.log
+.vercel
+.env*

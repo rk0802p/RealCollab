@@ -17,6 +17,7 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@realcollab/shared": ["../../packages/shared/src/index.ts"]

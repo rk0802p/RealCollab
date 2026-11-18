@@ -10,7 +10,7 @@
     "dev": "npm run dev --workspaces --if-present",
     "dev:web": "npm run dev --workspace=@realcollab/web",
     "dev:collab": "npm run dev --workspace=@realcollab/collaboration-server",
-    "build": "npm run prisma:generate && npm run build --workspaces --if-present",
+    "build": "npm run prisma:generate && npm run build:shared && npm run build:collab && npm run build:web",
     "build:web": "npm run prisma:generate && npm run build:shared && npm run build --workspace=@realcollab/web",
     "build:collab": "npm run build --workspace=@realcollab/collaboration-server",
     "build:render:collab": "npm run prisma:generate && npm run build:shared && npm run build:collab",

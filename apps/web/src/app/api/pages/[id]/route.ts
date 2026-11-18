@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@realcollab/shared';
+import { prisma, hasPermission } from '@realcollab/shared';
 import { getCurrentUser } from '@/lib/auth';
 import { getPageAccess } from '@/lib/workspaceAuth';
 import { updatePageSchema } from '@/lib/validations';
-import { hasPermission } from '@realcollab/shared';
+import { sanitizeTitle } from '@/lib/sanitize';
 
 interface RouteContext {
   params: { id: string };
@@ -71,9 +71,14 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       );
     }
 
+    const updateData: any = { ...result.data };
+    if (updateData.title !== undefined) {
+      updateData.title = sanitizeTitle(updateData.title, 120, 'Untitled');
+    }
+
     const updated = await prisma.page.update({
       where: { id: pageId },
-      data: result.data,
+      data: updateData,
     });
 
     return NextResponse.json({ page: updated });

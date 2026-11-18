@@ -218,7 +218,7 @@ wss.on('connection', (conn: WebSocket, _req: http.IncomingMessage, context: any)
             const peekDecoder = decoding.createDecoder(uint8Msg);
             decoding.readVarUint(peekDecoder); // consume messageSync (0)
             const syncStep = decoding.readVarUint(peekDecoder);
-            if (syncStep === syncProtocol.messageYjsUpdate) {
+            if (syncStep === syncProtocol.messageYjsUpdate || syncStep === syncProtocol.messageYjsSyncStep2) {
               console.warn(`[RBAC] Blocked update from read-only client ${user.name} (${user.role})`);
               return;
             }

@@ -3,6 +3,8 @@ import { prisma, hasPermission } from '@realcollab/shared';
 import { getCurrentUser } from '@/lib/auth';
 import { getPageAccess } from '@/lib/workspaceAuth';
 import { createCommentSchema } from '@/lib/validations';
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rateLimit';
+import { sanitizeComment } from '@/lib/sanitize';
 
 interface RouteContext {
   params: { id: string };
@@ -80,6 +82,24 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Rate limit: 30 comments per minute per user/IP
+  const clientIp = getClientIp(request);
+  const rateLimit = checkRateLimit(`${user.id}:${clientIp}`, {
+    keyPrefix: 'comments_create',
+    limit: 30,
+    windowMs: 60 * 1000,
+  });
+
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded for adding comments. Please slow down.' },
+      {
+        status: 429,
+        headers: getRateLimitHeaders(rateLimit),
+      }
+    );
+  }
+
   const pageId = params.id;
 
   try {
@@ -103,11 +123,13 @@ export async function POST(request: Request, { params }: RouteContext) {
       );
     }
 
+    const sanitizedContent = sanitizeComment(result.data.content);
+
     const comment = await prisma.comment.create({
       data: {
         pageId,
         authorId: user.id,
-        content: result.data.content,
+        content: sanitizedContent,
         anchorData: result.data.anchorData || undefined,
         resolved: false,
       },

@@ -1,6 +1,6 @@
 import { WorkspaceRole } from '@prisma/client';
 
-export type { WorkspaceRole };
+export { WorkspaceRole };
 
 export interface RolePermissions {
   canViewPages: boolean;

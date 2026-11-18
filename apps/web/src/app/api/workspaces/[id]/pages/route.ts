@@ -3,6 +3,7 @@ import { prisma } from '@realcollab/shared';
 import { getCurrentUser } from '@/lib/auth';
 import { requireWorkspacePermission } from '@/lib/workspaceAuth';
 import { createPageSchema } from '@/lib/validations';
+import { sanitizeTitle } from '@/lib/sanitize';
 
 interface RouteContext {
   params: { id: string };
@@ -31,6 +32,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     }
 
     const { title, icon, parentId } = result.data;
+    const sanitizedPageTitle = sanitizeTitle(title, 120, 'Untitled');
 
     // If parentId provided, verify parent exists in the same workspace
     if (parentId) {
@@ -48,7 +50,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     const page = await prisma.page.create({
       data: {
         workspaceId,
-        title,
+        title: sanitizedPageTitle,
         icon: icon || '📝',
         parentId: parentId || null,
         createdById: user.id,

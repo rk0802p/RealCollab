@@ -2,9 +2,29 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@realcollab/shared';
 import { hashPassword, createSessionToken, setSessionCookie } from '@/lib/auth';
 import { registerSchema } from '@/lib/validations';
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rateLimit';
+import { sanitizeName } from '@/lib/sanitize';
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: 5 registration attempts per minute per IP
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(clientIp, {
+      keyPrefix: 'auth_register',
+      limit: 5,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(rateLimit),
+        }
+      );
+    }
+
     const body = await request.json();
     const result = registerSchema.safeParse(body);
 
@@ -17,6 +37,7 @@ export async function POST(request: Request) {
 
     const { email, password, name } = result.data;
     const normalizedEmail = email.toLowerCase().trim();
+    const sanitizedUserName = sanitizeName(name);
 
     // Check duplicate email
     const existing = await prisma.user.findUnique({
@@ -37,7 +58,7 @@ export async function POST(request: Request) {
       const newUser = await tx.user.create({
         data: {
           email: normalizedEmail,
-          name,
+          name: sanitizedUserName,
           passwordHash,
         },
       });

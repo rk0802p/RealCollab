@@ -2,9 +2,28 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@realcollab/shared';
 import { verifyPassword, createSessionToken, setSessionCookie } from '@/lib/auth';
 import { loginSchema } from '@/lib/validations';
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: 5 login attempts per minute per IP
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(clientIp, {
+      keyPrefix: 'auth_login',
+      limit: 5,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(rateLimit),
+        }
+      );
+    }
+
     const body = await request.json();
     const result = loginSchema.safeParse(body);
 

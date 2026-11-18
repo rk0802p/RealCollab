@@ -3,6 +3,7 @@ import { prisma, hasPermission } from '@realcollab/shared';
 import { getCurrentUser } from '@/lib/auth';
 import { getCommentAccess } from '@/lib/workspaceAuth';
 import { createReplySchema } from '@/lib/validations';
+import { sanitizeComment } from '@/lib/sanitize';
 
 interface RouteContext {
   params: { id: string };
@@ -35,11 +36,13 @@ export async function POST(request: Request, { params }: RouteContext) {
       );
     }
 
+    const sanitizedContent = sanitizeComment(result.data.content);
+
     const reply = await prisma.commentReply.create({
       data: {
         commentId: comment.id,
         authorId: user.id,
-        content: result.data.content,
+        content: sanitizedContent,
       },
       include: {
         author: {

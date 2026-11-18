@@ -102,15 +102,71 @@ npm run dev
 
 ---
 
+## 🌐 Production & Vercel Deployment
+
+RealCollab employs a modern decoupled architecture:
+1. **Frontend & Next.js App Router (`apps/web`)** is deployed to **Vercel** (stateless, global edge caching, SSR).
+2. **Collaboration Server (`apps/collaboration-server`)** is deployed to a persistent runtime (e.g. **Railway, Render, Fly.io, or VPS**) because WebSockets require a long-lived persistent process.
+
+### Deploying the Web App to Vercel
+
+The repository includes a ready-to-use [`vercel.json`](./vercel.json) at the root:
+
+1. Import your GitHub repository into [Vercel](https://vercel.com).
+2. Configure **Environment Variables** in the Vercel Dashboard:
+   - `DATABASE_URL`: Hosted PostgreSQL connection URL (e.g. Supabase, Neon, AWS RDS, or Railway).
+   - `JWT_SECRET`: Random 32+ character secure secret string.
+   - `AUTH_SECRET`: Random 32+ character secure secret string.
+   - `NEXT_PUBLIC_APP_URL`: Your Vercel domain (e.g. `https://realcollab.vercel.app`).
+   - `NEXT_PUBLIC_COLLAB_WS_URL`: The WebSocket URL of your deployed collaboration server (e.g. `wss://collab.yourdomain.com`).
+3. Deploy! Vercel automatically runs `npm run build:web` (which generates Prisma client and builds the optimized Next.js bundle).
+
+### Deploying the Collaboration Server (Docker / Railway / Render)
+
+Run the stateful WebSocket server using the Node.js runtime:
+```bash
+npm run build:collab
+node apps/collaboration-server/dist/server.js
+```
+Provide the following environment variables:
+- `DATABASE_URL`: Same PostgreSQL database URL.
+- `REDIS_URL`: Redis connection URL for multi-instance sync (optional, operates standalone if omitted).
+- `JWT_SECRET`: Matching JWT secret for handshake validation.
+- `COLLAB_PORT`: Port to listen on (default `1234` or `$PORT`).
+
+---
+
+## 🧪 Testing & Verification
+
+Run the comprehensive unit test suite:
+```bash
+npm run test --workspace=@realcollab/web
+```
+Current test suite status: **28/28 passing**
+- `auth.test.ts` (7 tests): Password hashing, session creation, token validation, and RBAC matrix.
+- `editor.test.ts` (4 tests): Formatting states, task lists, and slash commands.
+- `collaboration.test.ts` (4 tests): Multi-client CRDT convergence and conflict-free editing.
+- `presence.test.ts` (5 tests): Distinct cursor colors, 3-client awareness tracking, typing indicators, and disconnect cleanup.
+- `comments.test.ts` (8 tests): Anchored selection stability across concurrent document mutations, threaded replies, and resolve/reopen status.
+
+Run end-to-end phase verification scripts:
+```bash
+node scripts/verify-phase4.mjs  # Multi-client CRDT sync over WebSockets
+node scripts/verify-phase5.mjs  # Live awareness, cursors, and typing indicators
+node scripts/verify-phase6.mjs  # Anchored comments, replies, and RBAC against PostgreSQL
+```
+
+---
+
 ## 🗺️ Implementation Roadmap
 
 - [x] **Phase 0 — Product Planning & Architecture**: CRDT research, system topology, database design, and protocol specification.
 - [x] **Phase 1 — Project Initialization & Monorepo Setup**: Workspaces, Docker compose, Prisma models, Next.js UI scaffolding, and WebSocket daemon foundation.
-- [ ] **Phase 2 — Database Architecture & Authentication**: Sessions, bcrypt password hashing, workspace tenancy, and RBAC guards.
-- [ ] **Phase 3 — TipTap Rich-Text Editor**: Headings, lists, codeblocks, checklists, and local autosave.
-- [ ] **Phase 4 — Yjs Real-Time Collaboration**: y-websocket integration, binary update persistence, and concurrent edit convergence.
-- [ ] **Phase 5 — Presence, Colored Cursors & Avatars**: Ephemeral awareness, live user carets, and active typing badges.
-- [ ] **Phase 6 — Threaded Comments & Inline Anchors**: RelativePosition anchors, comment threads, replies, and resolution.
+- [x] **Phase 2 — Database Architecture & Authentication**: Sessions, bcrypt password hashing, workspace tenancy, and RBAC guards.
+- [x] **Phase 3 — TipTap Rich-Text Editor**: Headings, lists, codeblocks, checklists, and local autosave.
+- [x] **Phase 4 — Yjs Real-Time Collaboration**: `y-websocket` integration, binary update persistence, and concurrent edit convergence.
+- [x] **Phase 5 — Presence, Colored Cursors & Avatars**: Ephemeral awareness, live user carets, and active typing badges.
+- [x] **Phase 6 — Threaded Comments & Inline Anchors**: `RelativePosition` anchors, comment threads, replies, and resolution.
 - [ ] **Phase 7 — Version History & Snapshots**: Named snapshots, version preview, and non-destructive rollbacks.
 - [ ] **Phase 8 — Security & Permission Enforcement**: Server-side write validation, invitation tokens, and rate limiting.
 - [ ] **Phase 9 — Multi-Instance Redis Scaling**: Redis Pub/Sub channels for cross-instance horizontal synchronization.

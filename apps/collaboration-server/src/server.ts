@@ -1,5 +1,5 @@
 import http from 'http';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { WebSocketServer, WebSocket } from 'ws';
 import * as Y from 'yjs';
@@ -119,7 +119,7 @@ function getOrCreateRoom(roomName: string, pageId: string): RoomState {
 }
 
 // REST health endpoint
-app.get('/health', (_req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'realcollab-collaboration-server',
@@ -166,7 +166,7 @@ server.on('upgrade', async (request, socket, head) => {
       return;
     }
 
-    wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.handleUpgrade(request, socket, head, (ws: WebSocket) => {
       wss.emit('connection', ws, request, { room: parsedRoom, user: authUser });
     });
   } catch (err: any) {

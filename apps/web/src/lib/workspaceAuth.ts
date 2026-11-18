@@ -129,3 +129,41 @@ export async function getCommentAccess(commentId: string, userId: string) {
     membership,
   };
 }
+
+/**
+ * Validates that the user has access to a specific document snapshot via its page workspace membership.
+ */
+export async function getSnapshotAccess(snapshotId: string, userId: string) {
+  const snapshot = await prisma.documentSnapshot.findUnique({
+    where: { id: snapshotId },
+    include: {
+      page: {
+        include: {
+          workspace: true,
+        },
+      },
+      creator: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
+
+  if (!snapshot) {
+    throw new Error('SNAPSHOT_NOT_FOUND');
+  }
+
+  const membership = await getWorkspaceMembership(snapshot.page.workspaceId, userId);
+  if (!membership) {
+    throw new Error('NOT_A_WORKSPACE_MEMBER');
+  }
+
+  return {
+    snapshot,
+    membership,
+  };
+}

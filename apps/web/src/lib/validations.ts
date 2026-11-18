@@ -66,3 +66,12 @@ export const createReplySchema = z.object({
 export const resolveCommentSchema = z.object({
   resolved: z.boolean().optional(),
 });
+
+export const createSnapshotSchema = z.object({
+  description: z.string().min(1, 'Snapshot description cannot be empty').max(255).optional(),
+  snapshotBase64: z.string().optional(),
+});
+
+export const restoreSnapshotSchema = z.object({
+  createCheckpoint: z.boolean().optional().default(true),
+});

@@ -48,3 +48,24 @@ export interface CommentThread {
   author: CommentAuthor;
   replies: CommentReply[];
 }
+
+export interface DocumentSnapshotSummary {
+  id: string;
+  pageId: string;
+  description?: string | null;
+  createdAt: string;
+  createdById?: string | null;
+  sizeBytes: number;
+  creator?: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+  } | null;
+}
+
+export interface SnapshotPreview {
+  snapshot: DocumentSnapshotSummary;
+  contentText: string;
+  snapshotBase64: string;
+}

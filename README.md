@@ -1,17 +1,94 @@
-# RealCollab — Real-Time Collaborative Workspace
+# RealCollab — Real-Time Collaborative Workspace (FS-02)
 
-> A high-performance, real-time multiplayer document workspace inspired by Notion and Figma's collaboration layer. Built with Next.js, TipTap, Yjs (CRDT), WebSockets, PostgreSQL, Prisma, and Redis.
+> **FS-02 Problem Statement**: Build a high-performance, real-time multiplayer document workspace inspired by Notion and Figma's collaboration layer. Built with Next.js 14, TipTap, Yjs (CRDT), WebSockets, PostgreSQL, Prisma ORM, and Redis Pub/Sub.
+
+[![Live Demo](https://img.shields.io/badge/Production-Live%20Demo-success?style=for-the-badge&logo=vercel)](https://realcollab-livid.vercel.app)
+[![Collab Server](https://img.shields.io/badge/Render-WebSocket%20Server-blue?style=for-the-badge&logo=render)](https://realcollab-pl3z.onrender.com/health)
+[![Test Suite](https://img.shields.io/badge/Vitest-52%2F52%20Passing-brightgreen?style=for-the-badge&logo=vitest)](https://github.com/rk0802p/RealCollab)
+[![License](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](#-license)
 
 ---
 
-## 🚀 Key Highlights & Architectural Pillars
+## 🌐 Live Deployments
 
-- **Conflict-Free Replicated Data Types (CRDTs)**: Powered by `Yjs` and lib0 binary encoding to guarantee strong eventual consistency across concurrent edits without data loss.
-- **Stateful WebSocket Service vs. Stateless Frontend**: Complete architectural separation between the Next.js App Router (business logic, auth, permissions) and the persistent collaboration server (`y-websocket`).
-- **Ephemeral Awareness & Live Cursors**: User presence, caret positions, avatar rings, and selections are handled via Yjs Awareness (never polluting the persistent database).
-- **Durable Document Persistence**: Dual write-path featuring debounced incremental binary updates (`DocumentUpdate`) and historical compacted checkpoints (`DocumentSnapshot`).
-- **Multi-Instance Horizontal Scaling**: Redis Pub/Sub channels distribute room updates across multiple collaboration server instances.
-- **Enterprise-Grade Role-Based Access Control (RBAC)**: Strict server-side enforcement across `OWNER`, `EDITOR`, `COMMENTER`, and `VIEWER` roles.
+- **Web Application (Vercel)**: [https://realcollab-livid.vercel.app](https://realcollab-livid.vercel.app)
+- **Collaboration Server (Render)**: [wss://realcollab-pl3z.onrender.com](https://realcollab-pl3z.onrender.com)
+  - Server Health Check: [https://realcollab-pl3z.onrender.com/health](https://realcollab-pl3z.onrender.com/health)
+
+---
+
+## 📸 Product Screenshots & Visual Tour
+
+All high-resolution production captures are stored under the [`screenshots/`](./screenshots) directory:
+
+| Feature | Screenshot |
+| :--- | :--- |
+| **01. Authentication & Security**<br>Bento/Claymorphic secure login portal with session handling and rate limiting. | ![Login](./screenshots/01-auth-login.png) |
+| **02. User Registration**<br>New user onboarding with automatic personal workspace provisioning. | ![Signup](./screenshots/02-auth-signup.png) |
+| **03. Collaborative Workspace & Editor**<br>TipTap editor, slash commands (`/`), task checklist, and real-time multiplayer presence. | ![Editor](./screenshots/03-workspace-editor.png) |
+| **04. Version History & Checkpoints**<br>Chronological document snapshots with read-only preview and non-destructive restore. | ![History](./screenshots/04-version-history.png) |
+| **05. Inline Anchored Comments**<br>Selection-anchored highlights with threaded discussions, replies, and resolution workflow. | ![Comments](./screenshots/05-threaded-comments.png) |
+| **06. Cryptographic Workspace Sharing**<br>Role-based invitations (OWNER, EDITOR, COMMENTER, VIEWER) with 7-day secure tokens. | ![Share](./screenshots/06-manage-members-modal.png) |
+
+---
+
+## 🏛️ System Architecture
+
+RealCollab utilizes a decoupled architecture separating the **stateless presentation/API layer** from the **stateful, long-lived multiplayer collaboration daemon**:
+
+```
+ ┌─────────────────────────────────────────────────────────────┐
+ │                    Client Browser Window                    │
+ │   ┌───────────────────────┐     ┌───────────────────────┐   │
+ │   │  Next.js 14 Frontend  │     │   TipTap Rich Editor  │   │
+ │   │  App Router & React   │     │   (y-prosemirror)     │   │
+ │   └──────────┬────────────┘     └───────────┬───────────┘   │
+ └──────────────┼──────────────────────────────┼───────────────┘
+                │ HTTPS (REST & SSR)           │ WSS (Binary Yjs CRDT)
+                ▼                              ▼
+ ┌───────────────────────────┐    ┌────────────────────────────┐
+ │  Vercel Edge & Serverless │    │  Render Collaboration Host │
+ │  Next.js App Router       │    │  y-websocket + ws Server   │
+ │  - /api/auth/*            │    │  - Room Management         │
+ │  - /api/workspaces/*      │    │  - JWT Connection Auth     │
+ │  - /api/pages/*           │    │  - Yjs CRDT Convergence   │
+ │  - /api/comments/*        │    │  - Ephemeral Awareness     │
+ │  - /api/snapshots/*       │    │  - Debounced Persistence   │
+ └──────────────┬────────────┘    └────────────┬───────────────┘
+                │                              │
+                │ Prisma Client                │ Binary Delta Persistence
+                ▼                              ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │                PostgreSQL Relational Database               │
+ │  Users | Workspaces | Pages | Comments | Snapshots | Updates│
+ └──────────────────────────────┬──────────────────────────────┘
+                                │ Redis Pub/Sub (Multi-Node Sync)
+                                ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │                   Redis In-Memory Bus                       │
+ └─────────────────────────────────────────────────────────────┘
+```
+
+### Architectural Highlights
+
+1. **Conflict-Free Replicated Data Types (CRDTs)**:
+   - Uses `Yjs` binary encoding (lib0 protocol) to mathematically guarantee eventual consistency across concurrent edits.
+   - Overlapping edits inside identical paragraphs merge deterministically without locks or data loss.
+
+2. **Stateless vs. Stateful Separation**:
+   - Next.js handles user authentication, workspace hierarchy, comments, and permissions.
+   - A dedicated Node.js service maintains in-memory active document rooms and broadcasts delta updates over persistent WebSocket channels.
+
+3. **Ephemeral Awareness vs. Persistent State**:
+   - Caret positions, selection ranges, user presence avatars, and typing indicators are distributed via Yjs Awareness protocol.
+   - Ephemeral presence state never touches or bloats the database.
+
+4. **Dual Write-Path Persistence**:
+   - High-frequency keystrokes are batched and written to `DocumentUpdate` binary rows with a 400ms debounce.
+   - Milestone checkpoints are compressed into `DocumentSnapshot` blobs for fast cold starts and version history rollbacks.
+
+5. **Cross-Origin Authentication**:
+   - WebSockets connect cross-domain (Vercel to Render) using signed JSON Web Tokens (`HS256`) passed in connection parameters, preventing cross-site cookie blocking.
 
 ---
 
@@ -20,163 +97,192 @@
 ```
 RealCollab/
 ├── apps/
-│   ├── web/                        # Next.js 14/15 App Router Frontend
+│   ├── web/                        # Next.js 14 App Router Frontend
 │   │   ├── src/
-│   │   │   ├── app/                # App Router pages and route handlers
-│   │   │   ├── components/         # Modular UI (editor, workspace, comments, presence)
-│   │   │   ├── hooks/              # Custom React hooks (useCollab, useAwareness)
-│   │   │   ├── lib/                # Utilities and API clients
-│   │   │   ├── services/           # Backend services
-│   │   │   └── types/              # Frontend types
+│   │   │   ├── app/                # App Router pages and API routes
+│   │   │   ├── components/         # Claymorphic + Bento UI modules
+│   │   │   │   ├── collaboration/  # Presence avatars & connection indicators
+│   │   │   │   ├── comments/       # Threaded discussion sidebar
+│   │   │   │   ├── editor/         # TipTap editor, toolbar, slash commands
+│   │   │   │   ├── history/        # Version history & rollback sidebar
+│   │   │   │   ├── ui/             # Claymorphism design primitives
+│   │   │   │   └── workspace/      # Sidebar, header, invite modals
+│   │   │   ├── hooks/              # useCollaboration, useVersionHistory
+│   │   │   ├── lib/                # JWT auth, rate limiting, sanitization
+│   │   │   └── types/              # TypeScript interface definitions
 │   │   └── package.json
 │   │
-│   └── collaboration-server/       # Long-lived WebSocket Collaboration Daemon
+│   └── collaboration-server/       # Long-Lived WebSocket Daemon
 │       ├── src/
-│       │   ├── server.ts           # Entrypoint (Express + ws)
-│       │   ├── auth/               # Connection auth & RBAC validation
-│       │   ├── persistence/        # Prisma update persistence & snapshotting
-│       │   ├── middleware/         # Handshake & origin verification
-│       │   └── redis/              # Redis Pub/Sub multi-instance scaling
+│       │   ├── server.ts           # Express + WebSocket HTTP Upgrade server
+│       │   ├── auth/               # JWT token handshake & workspace guard
+│       │   ├── middleware/         # URL parser & room connection guard
+│       │   ├── persistence/        # Binary update batching & snapshotting
+│       │   └── redis/              # Multi-instance Pub/Sub horizontal scale
 │       └── package.json
 │
 ├── packages/
-│   └── shared/                     # Shared Prisma schema, types, and constants
+│   └── shared/                     # Monorepo Shared Package
 │       ├── prisma/
-│       │   ├── schema.prisma       # Complete PostgreSQL database schema
+│       │   ├── schema.prisma       # Database schema definition
 │       │   └── seed.ts             # Demo data generator
-│       ├── src/                    # Exported TypeScript types and validation schemas
+│       ├── src/
+│       │   ├── index.ts            # Permissions & RBAC matrix
+│       │   └── permissions.ts      # Permission evaluation helpers
 │       └── package.json
 │
-├── docs/                           # Technical Specifications & Blueprints
-│   ├── architecture.md             # System architecture & CRDT data flow
-│   ├── database.md                 # ER diagrams & schema specification
-│   ├── api.md                      # REST API & WebSocket protocol spec
-│   └── testing.md                  # QA, Playwright, and load-test strategies
+├── screenshots/                    # High-Resolution Product Screenshots
+│   ├── 01-auth-login.png
+│   ├── 02-auth-signup.png
+│   ├── 03-workspace-editor.png
+│   ├── 04-version-history.png
+│   ├── 05-threaded-comments.png
+│   └── 06-manage-members-modal.png
 │
-├── docker-compose.yml              # Local PostgreSQL 16 & Redis 7 services
-├── .env.example                    # Template environment variables
-├── README.md                       # Main documentation (this file)
-└── package.json                    # Monorepo workspaces definition
+├── scripts/                        # Automated Verification & Test Scripts
+│   ├── verify-full-system.mjs      # 10-step full system regression runner
+│   ├── verify-phase4.mjs           # Yjs CRDT concurrency verification
+│   ├── verify-phase5.mjs           # Live presence & cursor tracking test
+│   ├── verify-phase6.mjs           # Anchored comments & discussion test
+│   ├── verify-phase7.mjs           # Snapshot & non-destructive rollback test
+│   ├── verify-phase8.mjs           # Security, invitations & RBAC test
+│   ├── capture-screenshots.mjs     # Automated Playwright screenshot script
+│   └── local-pg.ps1                # Local PostgreSQL daemon helper
+│
+├── docs/                           # Architecture Specifications
+│   ├── architecture.md             # Topology & data flow specification
+│   ├── database.md                 # Database schema documentation
+│   ├── api.md                      # REST & WebSocket protocol documentation
+│   └── testing.md                  # Verification methodology
+│
+├── docker-compose.yml              # PostgreSQL 16 & Redis 7 local services
+├── .env.example                    # Environment variable template
+├── vercel.json                     # Vercel deployment build definition
+├── package.json                    # Monorepo root workspaces configuration
+└── README.md                       # Master Documentation
 ```
 
 ---
 
-## 🛠️ Quickstart & Local Development
+## ⚡ Feature Breakdown
+
+### 1. TipTap Rich-Text Editor & Formatting
+- **Block Types**: Headings (H1, H2, H3), bulleted lists, numbered lists, task checklists with checkboxes, blockquotes, and code blocks.
+- **Inline Styling**: Bold, italic, strikethrough, inline code, and hyperlinks.
+- **Slash Commands Menu**: Typing `/` triggers a contextual floating command menu for rapid block insertion.
+- **Floating Bubble Menu**: Text selection brings up immediate text formatting controls.
+- **Autosave Engine**: Active edits are debounced (1000ms) with clean flush on unmount to prevent data loss.
+
+### 2. Multi-Client Real-Time Collaboration (CRDTs)
+- **Conflict-Free Merge**: Powered by Yjs, simultaneous edits from multiple tabs or users merge without overwriting.
+- **Offline / Catch-Up Sync**: State vectors compute the exact minimum binary delta required to catch up reconnecting clients.
+- **Room Isolation**: Formatted strictly as `workspace:{workspaceId}:page:{pageId}` to prevent cross-document collision.
+
+### 3. Ephemeral Presence & Awareness
+- **Live User Avatars**: Header avatar cluster showing all active participants currently reading or editing the document.
+- **Colored Remote Cursors**: Each collaborator receives a deterministic, distinct color with real-time cursor label and caret position.
+- **Typing Indicators**: Displays real-time typing indicators (`"User is editing..."`) with automatic 1.5s idle reset.
+- **Disconnect Cleanup**: Dropped WebSocket connections automatically clean up presence state.
+
+### 4. Inline Selection-Anchored Comments
+- **Relative Position Anchors**: Comments link to text selections using Yjs `RelativePosition`, ensuring highlights follow text insertions and deletions.
+- **Threaded Discussions**: Nested comment threads supporting multiple replies per comment.
+- **Resolution Workflow**: Comments can be marked as resolved, filtering them from the active document view.
+
+### 5. Document Version History & Recovery
+- **Milestone Checkpoints**: Named snapshots (`DocumentSnapshot`) capturing point-in-time document states.
+- **Diff Preview**: Safe, read-only preview of previous states without mutating the active collaborative session.
+- **Non-Destructive Restoration**: Rolling back restores earlier content while automatically archiving the pre-restore state.
+
+### 6. Workspaces & Role-Based Access Control (RBAC)
+- **Multi-Tenancy**: Users can create, switch between, and manage multiple workspaces.
+- **Role Hierarchy**:
+  - `OWNER`: Full control, member invitation, role management, workspace deletion.
+  - `EDITOR`: Full document editing, snapshot creation, and rollback.
+  - `COMMENTER`: Read-only text access with inline comment and reply capabilities.
+  - `VIEWER`: Read-only document access.
+- **Cryptographic Invitations**: Secure 7-day single-use invite tokens hashed with SHA-256 in the database.
+- **Security Defenses**: Rate limiting on sensitive endpoints (auth, invitations) and HTML stripping against XSS injection.
+
+---
+
+## 🛠️ Installation & Local Setup
 
 ### 1. Prerequisites
 - **Node.js**: v20 or v22 LTS
 - **npm**: v10+
-- **Docker & Docker Compose** (optional for containerized PostgreSQL & Redis)
+- **PostgreSQL**: Local cluster or hosted URL (e.g. Supabase, Neon)
+- **Redis** *(optional)*: For multi-instance horizontal scaling (in-memory fallback runs automatically if omitted)
 
-### 2. Environment Configuration
-Copy the template environment file:
+### 2. Clone Repository
+```bash
+git clone https://github.com/rk0802p/RealCollab.git
+cd RealCollab
+```
+
+### 3. Environment Configuration
+Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-
-### 3. Start Database & Redis (Docker)
-```bash
-docker compose up -d
+Ensure `.env` contains:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/realcollab"
+JWT_SECRET="your-secure-jwt-secret-key-at-least-32-chars"
+AUTH_SECRET="your-secure-auth-secret-key-at-least-32-chars"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_COLLAB_WS_URL="ws://localhost:1234"
+COLLAB_PORT=1234
 ```
-*(Alternatively, configure your local or hosted PostgreSQL and Redis instances in `.env`)*
 
-### 4. Install Dependencies & Generate Database Client
+### 4. Install Dependencies
 ```bash
 npm install
-npm run prisma:generate
 ```
 
-### 5. Run Database Migrations and Seed Demo Data
+### 5. Database Setup & Migrations
 ```bash
+npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:seed
 ```
 
 ### 6. Start Development Servers
-Run both frontend and collaboration server in parallel:
+Run both frontend and WebSocket collaboration server concurrently:
 ```bash
 npm run dev
 ```
-- **Web Application**: [http://localhost:3000](http://localhost:3000)
-- **Collaboration WebSocket Server**: [ws://localhost:1234](ws://localhost:1234) (Health: [http://localhost:1234/health](http://localhost:1234/health))
-
----
-
-## 🌐 Production & Vercel Deployment
-
-RealCollab employs a modern decoupled architecture:
-1. **Frontend & Next.js App Router (`apps/web`)** is deployed to **Vercel** (stateless, global edge caching, SSR).
-2. **Collaboration Server (`apps/collaboration-server`)** is deployed to a persistent runtime (e.g. **Railway, Render, Fly.io, or VPS**) because WebSockets require a long-lived persistent process.
-
-### Deploying the Web App to Vercel
-
-The repository includes a ready-to-use [`vercel.json`](./vercel.json) at the root:
-
-1. Import your GitHub repository into [Vercel](https://vercel.com).
-2. Configure **Environment Variables** in the Vercel Dashboard:
-   - `DATABASE_URL`: Hosted PostgreSQL connection URL (e.g. Supabase, Neon, AWS RDS, or Railway).
-   - `JWT_SECRET`: Random 32+ character secure secret string.
-   - `AUTH_SECRET`: Random 32+ character secure secret string.
-   - `NEXT_PUBLIC_APP_URL`: Your Vercel domain (e.g. `https://realcollab.vercel.app`).
-   - `NEXT_PUBLIC_COLLAB_WS_URL`: The WebSocket URL of your deployed collaboration server (e.g. `wss://collab.yourdomain.com`).
-3. Deploy! Vercel automatically runs `npm run build:web` (which generates Prisma client and builds the optimized Next.js bundle).
-
-### Deploying the Collaboration Server (Docker / Railway / Render)
-
-Run the stateful WebSocket server using the Node.js runtime:
-```bash
-npm run build:collab
-node apps/collaboration-server/dist/server.js
-```
-Provide the following environment variables:
-- `DATABASE_URL`: Same PostgreSQL database URL.
-- `REDIS_URL`: Redis connection URL for multi-instance sync (optional, operates standalone if omitted).
-- `JWT_SECRET`: Matching JWT secret for handshake validation.
-- `COLLAB_PORT`: Port to listen on (default `1234` or `$PORT`).
+- **Next.js Web Application**: [http://localhost:3000](http://localhost:3000)
+- **Collaboration Server**: [ws://localhost:1234](ws://localhost:1234)
+- **Health Check**: [http://localhost:1234/health](http://localhost:1234/health)
 
 ---
 
 ## 🧪 Testing & Verification
 
-Run the comprehensive unit test suite:
+### Unit Test Suite (Vitest)
+Run all 52 unit tests across 7 test suites:
 ```bash
-npm run test --workspace=@realcollab/web
+npm test
 ```
-Current test suite status: **52/52 passing**
-- `auth.test.ts` (7 tests): Password hashing, session creation, token validation, and RBAC matrix.
-- `editor.test.ts` (4 tests): Formatting states, task lists, and slash commands.
-- `collaboration.test.ts` (4 tests): Multi-client CRDT convergence and conflict-free editing.
-- `presence.test.ts` (5 tests): Distinct cursor colors, 3-client awareness tracking, typing indicators, and disconnect cleanup.
-- `comments.test.ts` (8 tests): Anchored selection stability across concurrent document mutations, threaded replies, and resolve/reopen status.
-- `versionHistory.test.ts` (10 tests): Snapshot encoding, state reconstruction, accidental deletion recovery, and pre-restore backup preservation.
-- `security.test.ts` (14 tests): Rate limit throttling, sliding window recovery, XSS sanitization, invitation tokens, and WebSocket mutation guards.
 
-Run end-to-end phase verification scripts:
+### End-to-End System Verification
+Run the 10-step full system regression verification suite:
+```bash
+node scripts/verify-full-system.mjs
+```
+
+### Phase Acceptance Verification Scripts
 ```bash
 node scripts/verify-phase4.mjs  # Multi-client CRDT sync over WebSockets
 node scripts/verify-phase5.mjs  # Live awareness, cursors, and typing indicators
-node scripts/verify-phase6.mjs  # Anchored comments, replies, and RBAC against PostgreSQL
-node scripts/verify-phase7.mjs  # Named checkpoints, previewing, and non-destructive rollbacks
-node scripts/verify-phase8.mjs  # Cryptographic invitations, rate limiting, and RBAC guards
+node scripts/verify-phase6.mjs  # Anchored comments, replies, and RBAC
+node scripts/verify-phase7.mjs  # Named checkpoints and non-destructive rollbacks
+node scripts/verify-phase8.mjs  # Cryptographic invitations, rate limiting, and RBAC
 ```
-
----
-
-## 🗺️ Implementation Roadmap
-
-- [x] **Phase 0 — Product Planning & Architecture**: CRDT research, system topology, database design, and protocol specification.
-- [x] **Phase 1 — Project Initialization & Monorepo Setup**: Workspaces, Docker compose, Prisma models, Next.js UI scaffolding, and WebSocket daemon foundation.
-- [x] **Phase 2 — Database Architecture & Authentication**: Sessions, bcrypt password hashing, workspace tenancy, and RBAC guards.
-- [x] **Phase 3 — TipTap Rich-Text Editor**: Headings, lists, codeblocks, checklists, and local autosave.
-- [x] **Phase 4 — Yjs Real-Time Collaboration**: `y-websocket` integration, binary update persistence, and concurrent edit convergence.
-- [x] **Phase 5 — Presence, Colored Cursors & Avatars**: Ephemeral awareness, live user carets, and active typing badges.
-- [x] **Phase 6 — Threaded Comments & Inline Anchors**: `RelativePosition` anchors, comment threads, replies, and resolution.
-- [x] **Phase 7 — Version History & Snapshots**: Named snapshots, version preview, and non-destructive rollbacks.
-- [x] **Phase 8 — Security & Permission Enforcement**: Server-side write validation, invitation tokens, and rate limiting.
-- [ ] **Phase 9 — Multi-Instance Redis Scaling**: Redis Pub/Sub channels for cross-instance horizontal synchronization.
-- [ ] **Phase 10 — QA, Stress Testing & Production Deployment**: Multi-browser Playwright test matrix and load-test benchmarks.
 
 ---
 
 ## 📜 License
-MIT
+
+Distributed under the MIT License. See [LICENSE](./LICENSE) for details.

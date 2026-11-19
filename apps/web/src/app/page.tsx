@@ -156,6 +156,7 @@ export default function WorkspacePage() {
     status: wsStatus,
     collaborators: liveCollaborators,
     typingUsers,
+    isSynced,
     userColor,
     setLocalTyping,
   } = useCollaboration({
@@ -345,6 +346,7 @@ export default function WorkspacePage() {
               initialContent={activePage.content}
               ydoc={ydoc}
               provider={provider}
+              isSynced={isSynced}
               userRole={currentWorkspace?.currentUserRole}
               user={currentUser ? { name: currentUser.name, color: userColor } : null}
               typingUsers={typingUsers}

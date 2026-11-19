@@ -26,6 +26,7 @@ interface RichTextEditorProps {
   initialContent?: string | null;
   ydoc?: Y.Doc | null;
   provider?: WebsocketProvider | null;
+  isSynced?: boolean;
   userRole?: 'OWNER' | 'EDITOR' | 'COMMENTER' | 'VIEWER';
   user?: {
     name: string;
@@ -56,6 +57,7 @@ export function RichTextEditor({
   initialContent,
   ydoc,
   provider,
+  isSynced = false,
   userRole = 'EDITOR',
   user,
   typingUsers = [],
@@ -83,6 +85,7 @@ export function RichTextEditor({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isDirtyRef = useRef(false);
   const isSeedingRef = useRef(false);
+  const hasSeededRef = useRef(false);
 
   const commentsRef = useRef(comments);
   commentsRef.current = comments;
@@ -233,24 +236,43 @@ export function RichTextEditor({
   }, [pageId]);
 
   // If the Yjs document is empty and we have saved database content, seed it into the editor
+  // ONLY after the provider has synced with the server (or timed out for offline mode)
   useEffect(() => {
-    if (!editor || editor.isDestroyed || !initialContent) return;
+    if (!editor || editor.isDestroyed || !initialContent || hasSeededRef.current) return;
 
-    if (ydoc) {
-      const fragment = ydoc.getXmlFragment('default');
-      // If shared fragment has no length and initialContent is not empty
-      if (fragment.length === 0 && initialContent.trim().length > 0) {
-        isSeedingRef.current = true;
-        editor.commands.setContent(initialContent);
-        isDirtyRef.current = false;
-        setSaveStatus('saved');
-        const timer = setTimeout(() => {
-          isSeedingRef.current = false;
-        }, 100);
-        return () => clearTimeout(timer);
+    const seedIfEmpty = () => {
+      if (hasSeededRef.current || !editor || editor.isDestroyed) return;
+      if (ydoc) {
+        const fragment = ydoc.getXmlFragment('default');
+        // If shared fragment has no length and initialContent is not empty
+        if (fragment.length === 0 && initialContent.trim().length > 0) {
+          hasSeededRef.current = true;
+          isSeedingRef.current = true;
+          editor.commands.setContent(initialContent);
+          isDirtyRef.current = false;
+          setSaveStatus('saved');
+          const timer = setTimeout(() => {
+            isSeedingRef.current = false;
+          }, 100);
+          return () => clearTimeout(timer);
+        } else if (fragment.length > 0) {
+          // Document already has content synced from the server, do not duplicate!
+          hasSeededRef.current = true;
+        }
       }
+    };
+
+    // If provider is present and not yet synced, wait for sync (with a 1500ms safety timeout for offline)
+    if (provider && !isSynced) {
+      const timeout = setTimeout(() => {
+        seedIfEmpty();
+      }, 1500);
+      return () => clearTimeout(timeout);
     }
-  }, [editor, ydoc, initialContent]);
+
+    // Either no provider (standalone) or provider has completed sync with the server
+    seedIfEmpty();
+  }, [editor, ydoc, provider, isSynced, initialContent]);
 
   // Debounced auto-save function
   const triggerDebouncedSave = useCallback(

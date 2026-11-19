@@ -96,10 +96,12 @@ export default function WorkspacePage() {
   useEffect(() => {
     if (!activeWorkspaceId) return;
 
+    let isSubscribed = true;
+
     async function loadWorkspaceDetails() {
       try {
         const res = await fetch(`/api/workspaces/${activeWorkspaceId}`);
-        if (res.ok) {
+        if (res.ok && isSubscribed) {
           const { workspace } = await res.json();
           setCurrentWorkspace(workspace);
           if (workspace.pages?.length > 0) {
@@ -114,16 +116,25 @@ export default function WorkspacePage() {
       }
     }
     loadWorkspaceDetails();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, [activeWorkspaceId]);
 
   // Load active page details (content, icon, permissions) when activePageId changes
   useEffect(() => {
-    if (!activePageId) return;
+    if (!activePageId) {
+      setActivePageDetails(null);
+      return;
+    }
+
+    let isSubscribed = true;
 
     async function loadPage() {
       try {
         const res = await fetch(`/api/pages/${activePageId}`);
-        if (res.ok) {
+        if (res.ok && isSubscribed) {
           const data = await res.json();
           setActivePageDetails(data.page);
         }
@@ -132,6 +143,10 @@ export default function WorkspacePage() {
       }
     }
     loadPage();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, [activePageId]);
 
   // Real-time Yjs Collaboration & Awareness hook
@@ -154,6 +169,20 @@ export default function WorkspacePage() {
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
+  };
+
+  const handleSelectWorkspace = (wsId: string) => {
+    if (wsId === activeWorkspaceId) return;
+    setActiveWorkspaceId(wsId);
+    setActivePageId('');
+    setActivePageDetails(null);
+    setCurrentWorkspace(null);
+  };
+
+  const handleSelectPage = (pageId: string) => {
+    if (pageId === activePageId) return;
+    setActivePageId(pageId);
+    setActivePageDetails(null);
   };
 
   const handleCreatePage = async () => {
@@ -194,10 +223,15 @@ export default function WorkspacePage() {
       }
 
       const { page } = await res.json();
-      setActivePageDetails((prev: any) => ({ ...prev, ...page }));
+      setActivePageDetails((prev: any) => {
+        if (prev && prev.id === page.id) {
+          return { ...prev, ...page };
+        }
+        return prev;
+      });
 
       // Update title in sidebar list
-      if (data.title && currentWorkspace) {
+      if (data.title) {
         setCurrentWorkspace((prev: any) => {
           if (!prev) return prev;
           return {
@@ -209,15 +243,18 @@ export default function WorkspacePage() {
         });
       }
     },
-    [currentWorkspace]
+    []
   );
 
-  const activePage = activePageDetails || currentWorkspace?.pages?.find((p: any) => p.id === activePageId) || {
-    id: activePageId || 'default',
-    title: 'Collaborative Document',
-    icon: '📝',
-    content: null,
-  };
+  const activePage =
+    activePageDetails && activePageDetails.id === activePageId
+      ? activePageDetails
+      : currentWorkspace?.pages?.find((p: any) => p.id === activePageId) || {
+          id: activePageId || 'default',
+          title: 'Collaborative Document',
+          icon: '📝',
+          content: null,
+        };
 
   // Convert workspace members to fallback collaborator presence badges if no live websocket peers
   const fallbackCollaborators: Collaborator[] = (currentWorkspace?.members || []).map((m: any, idx: number) => ({
@@ -250,9 +287,9 @@ export default function WorkspacePage() {
         pages={currentWorkspace?.pages || []}
         activePageId={activePageId}
         user={currentUser}
-        onSelectPage={setActivePageId}
+        onSelectPage={handleSelectPage}
         onCreatePage={handleCreatePage}
-        onSelectWorkspace={setActiveWorkspaceId}
+        onSelectWorkspace={handleSelectWorkspace}
         onOpenCreateWorkspace={() => setCreateWsOpen(true)}
         onOpenMembersModal={() => setMembersModalOpen(true)}
         onLogout={handleLogout}
@@ -270,49 +307,80 @@ export default function WorkspacePage() {
         />
 
         <div className="flex-1 flex overflow-hidden relative gap-3 md:gap-4 min-h-0">
-          <RichTextEditor
-            key={`${activePageId}-${activeWorkspaceId}`}
-            pageId={activePageId}
-            initialTitle={activePage.title}
-            initialIcon={activePage.icon}
-            initialContent={activePage.content}
-            ydoc={ydoc}
-            provider={provider}
-            userRole={currentWorkspace?.currentUserRole}
-            user={currentUser ? { name: currentUser.name, color: userColor } : null}
-            typingUsers={typingUsers}
-            onTyping={setLocalTyping}
-            onSave={handleSavePage}
-            onOpenComments={() => {
-              setCommentsOpen(!commentsOpen);
-              if (historyOpen) setHistoryOpen(false);
-            }}
-            onOpenHistory={() => {
-              setHistoryOpen(!historyOpen);
-              if (commentsOpen) setCommentsOpen(false);
-            }}
-            isHistoryPreviewing={Boolean(previewingSnapshot)}
-            historyPreviewContent={previewContent}
-            historyPreviewTitle={previewingSnapshot?.description}
-            onExitHistoryPreview={exitPreview}
-            onRestoreHistoryPreview={() => {
-              if (previewingSnapshot) restoreSnapshot(previewingSnapshot.id);
-            }}
-            commentsCount={activeComments.length}
-            comments={comments}
-            activeCommentId={activeCommentId}
-            onCommentClick={(id) => {
-              setActiveCommentId(id);
-              setCommentsOpen(true);
-              setHistoryOpen(false);
-            }}
-            onAddCommentToSelection={(anchor) => {
-              setPendingAnchor(anchor);
-              setCommentsOpen(true);
-              setHistoryOpen(false);
-            }}
-            anchorToFocus={anchorToFocus}
-          />
+          {!activePageId || !currentWorkspace ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-canvas">
+              <div className="clay clay-paper p-8 rounded-2xl max-w-sm flex flex-col items-center gap-4 border border-line/10 shadow-clay">
+                <span className="text-4xl">📄</span>
+                <h3 className="font-bold text-ink-1">
+                  {currentWorkspace?.pages?.length === 0 ? 'No Documents' : 'Loading Document...'}
+                </h3>
+                <p className="text-xs text-ink-2 leading-relaxed">
+                  {currentWorkspace?.pages?.length === 0
+                    ? 'This workspace has no documents yet. Create one to get started.'
+                    : 'Opening workspace and loading documents...'}
+                </p>
+                {currentWorkspace?.pages?.length === 0 && (
+                  <button
+                    onClick={handleCreatePage}
+                    className="clay clay-btn-primary px-4 py-2 text-xs font-semibold rounded-xl mt-2"
+                  >
+                    + Create Page
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : !activePageDetails || activePageDetails.id !== activePageId ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-canvas">
+              <div className="clay clay-paper p-6 rounded-2xl flex items-center gap-3 border border-line/10 shadow-clay-sm">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs font-semibold text-ink-2">Loading document content...</span>
+              </div>
+            </div>
+          ) : (
+            <RichTextEditor
+              key={`${activeWorkspaceId}-${activePageId}`}
+              pageId={activePageId}
+              initialTitle={activePage.title}
+              initialIcon={activePage.icon}
+              initialContent={activePage.content}
+              ydoc={ydoc}
+              provider={provider}
+              userRole={currentWorkspace?.currentUserRole}
+              user={currentUser ? { name: currentUser.name, color: userColor } : null}
+              typingUsers={typingUsers}
+              onTyping={setLocalTyping}
+              onSave={handleSavePage}
+              onOpenComments={() => {
+                setCommentsOpen(!commentsOpen);
+                if (historyOpen) setHistoryOpen(false);
+              }}
+              onOpenHistory={() => {
+                setHistoryOpen(!historyOpen);
+                if (commentsOpen) setCommentsOpen(false);
+              }}
+              isHistoryPreviewing={Boolean(previewingSnapshot)}
+              historyPreviewContent={previewContent}
+              historyPreviewTitle={previewingSnapshot?.description}
+              onExitHistoryPreview={exitPreview}
+              onRestoreHistoryPreview={() => {
+                if (previewingSnapshot) restoreSnapshot(previewingSnapshot.id);
+              }}
+              commentsCount={activeComments.length}
+              comments={comments}
+              activeCommentId={activeCommentId}
+              onCommentClick={(id) => {
+                setActiveCommentId(id);
+                setCommentsOpen(true);
+                setHistoryOpen(false);
+              }}
+              onAddCommentToSelection={(anchor) => {
+                setPendingAnchor(anchor);
+                setCommentsOpen(true);
+                setHistoryOpen(false);
+              }}
+              anchorToFocus={anchorToFocus}
+            />
+          )}
 
           <CommentsSidebar
             isOpen={commentsOpen}

@@ -82,6 +82,7 @@ export function RichTextEditor({
   const [slashMenuPos, setSlashMenuPos] = useState({ top: 0, left: 0 });
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isDirtyRef = useRef(false);
+  const isSeedingRef = useRef(false);
 
   const commentsRef = useRef(comments);
   commentsRef.current = comments;
@@ -192,6 +193,7 @@ export function RichTextEditor({
         },
       },
       onUpdate: ({ editor }) => {
+        if (isSeedingRef.current) return;
         isDirtyRef.current = true;
         setSaveStatus('unsaved');
         onTyping?.(true);
@@ -210,7 +212,14 @@ export function RichTextEditor({
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-      if (isDirtyRef.current && editorRef.current && !editorRef.current.isDestroyed && onSaveRef.current) {
+      if (
+        isDirtyRef.current &&
+        !isSeedingRef.current &&
+        editorRef.current &&
+        !editorRef.current.isDestroyed &&
+        onSaveRef.current &&
+        pageIdRef.current
+      ) {
         const html = editorRef.current.getHTML();
         if (html && html !== '<p></p>') {
           onSaveRef.current(pageIdRef.current, {
@@ -218,6 +227,7 @@ export function RichTextEditor({
             content: html,
           }).catch(console.error);
         }
+        isDirtyRef.current = false;
       }
     };
   }, [pageId]);
@@ -230,7 +240,14 @@ export function RichTextEditor({
       const fragment = ydoc.getXmlFragment('default');
       // If shared fragment has no length and initialContent is not empty
       if (fragment.length === 0 && initialContent.trim().length > 0) {
+        isSeedingRef.current = true;
         editor.commands.setContent(initialContent);
+        isDirtyRef.current = false;
+        setSaveStatus('saved');
+        const timer = setTimeout(() => {
+          isSeedingRef.current = false;
+        }, 100);
+        return () => clearTimeout(timer);
       }
     }
   }, [editor, ydoc, initialContent]);

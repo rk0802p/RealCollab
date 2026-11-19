@@ -16,6 +16,7 @@ interface UseCollaborationOptions {
     avatarUrl?: string | null;
   } | null;
   userRole?: 'OWNER' | 'EDITOR' | 'COMMENTER' | 'VIEWER';
+  token?: string | null;
 }
 
 export function useCollaboration({
@@ -23,6 +24,7 @@ export function useCollaboration({
   pageId,
   user,
   userRole = 'EDITOR',
+  token,
 }: UseCollaborationOptions) {
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
@@ -45,12 +47,18 @@ export function useCollaboration({
       return;
     }
 
-    const wsUrl = process.env.NEXT_PUBLIC_COLLAB_WS_URL || 'ws://localhost:1234';
+    let wsUrl = process.env.NEXT_PUBLIC_COLLAB_WS_URL || 'ws://localhost:1234';
+    // If frontend is running over HTTPS, ensure secure wss protocol
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && wsUrl.startsWith('ws://') && !wsUrl.includes('localhost')) {
+      wsUrl = wsUrl.replace(/^ws:/, 'wss:');
+    }
+
     const roomName = `workspace:${workspaceId}:page:${pageId}`;
 
     const doc = new Y.Doc();
     const prov = new WebsocketProvider(wsUrl, roomName, doc, {
       connect: true,
+      params: token ? { token } : {},
     });
 
     // Set local presence awareness
@@ -112,7 +120,7 @@ export function useCollaboration({
       setIsSynced(false);
       setStatus('disconnected');
     };
-  }, [workspaceId, pageId, user?.id, user?.name, user?.avatarUrl, userRole, userColor]);
+  }, [workspaceId, pageId, user?.id, user?.name, user?.avatarUrl, userRole, userColor, token]);
 
   // Set typing indicator with auto-reset after 1.5 seconds of inactivity
   const setLocalTyping = useCallback(

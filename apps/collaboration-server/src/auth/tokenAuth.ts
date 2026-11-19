@@ -73,6 +73,18 @@ export async function authenticateConnectionToken(
         });
 
         if (!member) {
+          const ws = await prisma.workspace.findUnique({
+            where: { id: workspaceId },
+            include: { owner: true },
+          });
+          if (ws && ws.ownerId === userId) {
+            return {
+              id: ws.owner.id,
+              email: ws.owner.email,
+              name: ws.owner.name,
+              role: 'OWNER',
+            };
+          }
           console.warn(`[Auth] User ${userId} is not a member of workspace ${workspaceId}`);
           return null;
         }

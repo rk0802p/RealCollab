@@ -81,6 +81,7 @@ export function RichTextEditor({
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashMenuPos, setSlashMenuPos] = useState({ top: 0, left: 0 });
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isDirtyRef = useRef(false);
 
   const commentsRef = useRef(comments);
   commentsRef.current = comments;
@@ -93,6 +94,15 @@ export function RichTextEditor({
 
   const onCommentClickRef = useRef(onCommentClick);
   onCommentClickRef.current = onCommentClick;
+
+  const titleRef = useRef(title);
+  titleRef.current = title;
+
+  const pageIdRef = useRef(pageId);
+  pageIdRef.current = pageId;
+
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
 
   const canEdit = userRole === 'OWNER' || userRole === 'EDITOR';
 
@@ -182,13 +192,48 @@ export function RichTextEditor({
         },
       },
       onUpdate: ({ editor }) => {
+        isDirtyRef.current = true;
         setSaveStatus('unsaved');
         onTyping?.(true);
-        triggerDebouncedSave(title, editor.getHTML());
+        triggerDebouncedSave(titleRef.current, editor.getHTML());
       },
     },
     [pageId, ydoc, provider, canEdit]
   );
+
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
+
+  // Flush pending save immediately when pageId changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      if (isDirtyRef.current && editorRef.current && !editorRef.current.isDestroyed && onSaveRef.current) {
+        const html = editorRef.current.getHTML();
+        if (html && html !== '<p></p>') {
+          onSaveRef.current(pageIdRef.current, {
+            title: titleRef.current,
+            content: html,
+          }).catch(console.error);
+        }
+      }
+    };
+  }, [pageId]);
+
+  // If the Yjs document is empty and we have saved database content, seed it into the editor
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || !initialContent) return;
+
+    if (ydoc) {
+      const fragment = ydoc.getXmlFragment('default');
+      // If shared fragment has no length and initialContent is not empty
+      if (fragment.length === 0 && initialContent.trim().length > 0) {
+        editor.commands.setContent(initialContent);
+      }
+    }
+  }, [editor, ydoc, initialContent]);
 
   // Debounced auto-save function
   const triggerDebouncedSave = useCallback(
@@ -202,6 +247,7 @@ export function RichTextEditor({
         setSaveStatus('saving');
         try {
           await onSave(pageId, { title: currentTitle, content: currentContent });
+          isDirtyRef.current = false;
           setSaveStatus('saved');
           setLastSavedAt(new Date());
         } catch (err) {

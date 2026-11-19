@@ -18,6 +18,7 @@ import { useVersionHistory } from '@/hooks/useVersionHistory';
 export default function WorkspacePage() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>('');
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
@@ -70,8 +71,9 @@ export default function WorkspacePage() {
           router.push('/login');
           return;
         }
-        const { user } = await authRes.json();
+        const { user, token } = await authRes.json();
         setCurrentUser(user);
+        if (token) setAuthToken(token);
 
         const wsRes = await fetch('/api/workspaces');
         if (wsRes.ok) {
@@ -146,6 +148,7 @@ export default function WorkspacePage() {
     pageId: activePageId,
     user: currentUser,
     userRole: currentWorkspace?.currentUserRole,
+    token: authToken,
   });
 
   const handleLogout = async () => {

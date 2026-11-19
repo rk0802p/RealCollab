@@ -30,7 +30,7 @@ export function ConnectionIndicator({ status }: ConnectionIndicatorProps) {
   }[status];
 
   return (
-    <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface text-xs font-medium text-slate-300 border border-slate-800">
+    <div className="clay clay-paper rounded-full px-3 py-1 flex items-center gap-2 text-xs font-semibold text-ink-2 shadow-clay-sm border border-line/10">
       <span className="relative flex h-2 w-2">
         {status === 'connected' && (
           <span

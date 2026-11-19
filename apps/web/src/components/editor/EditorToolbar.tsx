@@ -65,14 +65,14 @@ export function EditorToolbar({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-surface/90 backdrop-blur sticky top-0 z-20 flex-wrap gap-y-2">
+    <div className="clay clay-paper clay-card px-3 py-1.5 flex items-center justify-between gap-2 border border-line/10 shadow-clay-sm sticky top-0 z-20 flex-wrap select-none mb-3">
       <div className="flex items-center gap-1 flex-wrap">
         {/* Undo / Redo */}
         <button
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
           title="Undo (Ctrl+Z)"
-          className="p-1.5 rounded hover:bg-surface-card text-slate-400 hover:text-white disabled:opacity-30 transition"
+          className="p-1.5 rounded-control hover:bg-canvas text-ink-2 hover:text-ink-1 disabled:opacity-30 transition-all"
         >
           <Undo2 className="w-3.5 h-3.5" />
         </button>
@@ -80,21 +80,21 @@ export function EditorToolbar({
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
           title="Redo (Ctrl+Y)"
-          className="p-1.5 rounded hover:bg-surface-card text-slate-400 hover:text-white disabled:opacity-30 transition"
+          className="p-1.5 rounded-control hover:bg-canvas text-ink-2 hover:text-ink-1 disabled:opacity-30 transition-all"
         >
           <Redo2 className="w-3.5 h-3.5" />
         </button>
 
-        <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+        <div className="w-[1px] h-4 bg-line/15 mx-1" />
 
         {/* Headings */}
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           title="Heading 1"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('heading', { level: 1 })
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <Heading1 className="w-4 h-4" />
@@ -102,10 +102,10 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           title="Heading 2"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('heading', { level: 2 })
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <Heading2 className="w-4 h-4" />
@@ -113,25 +113,25 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           title="Heading 3"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('heading', { level: 3 })
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <Heading3 className="w-4 h-4" />
         </button>
 
-        <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+        <div className="w-[1px] h-4 bg-line/15 mx-1" />
 
         {/* Inline styles: Bold, Italic, Underline */}
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
           title="Bold (Ctrl+B)"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('bold')
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <Bold className="w-4 h-4" />
@@ -139,10 +139,10 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
           title="Italic (Ctrl+I)"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('italic')
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <Italic className="w-4 h-4" />
@@ -150,25 +150,25 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           title="Underline (Ctrl+U)"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('underline')
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <UnderlineIcon className="w-4 h-4" />
         </button>
 
-        <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+        <div className="w-[1px] h-4 bg-line/15 mx-1" />
 
         {/* Lists & Checklist */}
         <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           title="Bulleted List"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('bulletList')
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <List className="w-4 h-4" />
@@ -176,10 +176,10 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           title="Numbered List"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('orderedList')
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <ListOrdered className="w-4 h-4" />
@@ -187,25 +187,25 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().toggleTaskList().run()}
           title="Checklist (Task list)"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('taskList')
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <CheckSquare className="w-4 h-4" />
         </button>
 
-        <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+        <div className="w-[1px] h-4 bg-line/15 mx-1" />
 
         {/* Quote & Code Block */}
         <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           title="Blockquote"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('blockquote')
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <Quote className="w-4 h-4" />
@@ -213,25 +213,25 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           title="Code Block"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('codeBlock')
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <Code className="w-4 h-4" />
         </button>
 
-        <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+        <div className="w-[1px] h-4 bg-line/15 mx-1" />
 
         {/* Link */}
         <button
           onClick={setLink}
           title={editor.isActive('link') ? 'Edit Link' : 'Insert Link'}
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive('link')
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <LinkIcon className="w-4 h-4" />
@@ -240,22 +240,22 @@ export function EditorToolbar({
           <button
             onClick={() => editor.chain().focus().unsetLink().run()}
             title="Remove Link"
-            className="p-1.5 rounded hover:bg-surface-card text-rose-400 hover:text-rose-300 transition"
+            className="p-1.5 rounded-control hover:bg-canvas text-err transition-all"
           >
             <Unlink className="w-3.5 h-3.5" />
           </button>
         )}
 
-        <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+        <div className="w-[1px] h-4 bg-line/15 mx-1" />
 
         {/* Text Alignment */}
         <button
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
           title="Align Left"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive({ textAlign: 'left' })
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <AlignLeft className="w-4 h-4" />
@@ -263,10 +263,10 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
           title="Align Center"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive({ textAlign: 'center' })
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <AlignCenter className="w-4 h-4" />
@@ -274,10 +274,10 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
           title="Align Right"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive({ textAlign: 'right' })
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <AlignRight className="w-4 h-4" />
@@ -285,56 +285,56 @@ export function EditorToolbar({
         <button
           onClick={() => editor.chain().focus().setTextAlign('justify').run()}
           title="Justify"
-          className={`p-1.5 rounded transition ${
+          className={`p-1.5 rounded-control transition-all ${
             editor.isActive({ textAlign: 'justify' })
-              ? 'bg-brand-600/30 text-brand-300'
-              : 'hover:bg-surface-card text-slate-400 hover:text-white'
+              ? 'clay clay-inset bg-lavender/40 text-primary-deep font-bold shadow-clay-press'
+              : 'hover:bg-canvas text-ink-2 hover:text-ink-1'
           }`}
         >
           <AlignJustify className="w-4 h-4" />
         </button>
 
-        <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+        <div className="w-[1px] h-4 bg-line/15 mx-1" />
 
         {/* Quick Insert / Slash Command trigger */}
         <button
           onClick={onOpenSlashMenu}
           title="Insert block (/)"
-          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-surface-card text-xs text-brand-400 hover:text-brand-300 font-medium transition"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-control text-xs font-bold text-primary hover:bg-canvas transition-all"
         >
           <Command className="w-3.5 h-3.5" />
           <span>Insert</span>
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {/* Autosave Status Badge */}
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+        <div className="flex items-center gap-1.5 text-[11px]">
           {saveStatus === 'saving' && (
-            <span className="flex items-center gap-1 text-amber-400">
+            <span className="flex items-center gap-1 text-warn font-semibold">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span>Saving...</span>
             </span>
           )}
           {saveStatus === 'saved' && (
-            <span className="flex items-center gap-1 text-emerald-400">
+            <span className="flex items-center gap-1 text-ok font-semibold">
               <Check className="w-3.5 h-3.5" />
               <span>Saved</span>
             </span>
           )}
           {saveStatus === 'unsaved' && (
-            <span className="flex items-center gap-1 text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
+            <span className="flex items-center gap-1 text-ink-3 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-warn" />
               <span>Unsaved changes</span>
             </span>
           )}
         </div>
 
-        <div className="w-[1px] h-4 bg-slate-800" />
+        <div className="w-[1px] h-4 bg-line/15" />
 
         <button
           onClick={onOpenHistory}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-300 hover:text-white hover:bg-surface-card rounded transition"
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-ink-2 hover:text-ink-1 hover:bg-canvas rounded-control transition-all"
           title="Version history"
         >
           <History className="w-3.5 h-3.5" />
@@ -343,13 +343,13 @@ export function EditorToolbar({
 
         <button
           onClick={onOpenComments}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-300 hover:text-white hover:bg-surface-card rounded transition"
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-ink-2 hover:text-ink-1 hover:bg-canvas rounded-control transition-all"
           title="Comments"
         >
           <MessageSquare className="w-3.5 h-3.5" />
           <span>Comments</span>
           {commentsCount > 0 && (
-            <span className="px-1.5 py-0.2 bg-brand-600 text-white rounded-full text-[10px]">
+            <span className="px-1.5 py-0.2 bg-primary text-white rounded-full text-[10px] font-bold shadow-clay-sm">
               {commentsCount}
             </span>
           )}

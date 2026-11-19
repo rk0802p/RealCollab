@@ -1,0 +1,112 @@
+:root {
+  /* canvas and neutrals */
+  --canvas: 255 247 238;         /* #FFF7EE warm cream, app background */
+  --paper: 255 255 255;          /* editor tile, inputs, modals */
+  --ink-1: 43 37 64;             /* #2B2540 primary text */
+  --ink-2: 91 85 117;            /* #5B5575 secondary text */
+  --ink-3: 115 109 140;          /* #736D8C meta/placeholder */
+  --line: 43 37 64;              /* use at /0.08 to /0.14 for hairlines */
+
+  /* primary action */
+  --primary: 108 71 255;         /* #6C47FF */
+  --primary-deep: 84 48 224;     /* #5430E0 hover/pressed, link text */
+  --on-primary: 255 255 255;
+
+  /* pastel tile families: fill / deep */
+  --lavender: 228 220 255;  --lavender-deep: 160 140 255;
+  --peach:    255 224 204;  --peach-deep:    255 160 110;
+  --mint:     211 245 228;  --mint-deep:     110 214 164;
+  --butter:   255 241 189;  --butter-deep:   255 205 70;
+  --sky:      214 235 255;  --sky-deep:      110 180 250;
+  --pink:     255 217 232;  --pink-deep:     255 135 180;
+
+  /* semantic */
+  --ok: 15 138 95;   --warn: 168 98 0;   --err: 200 40 75;
+
+  /* radii */
+  --r-tile: 28px;  --r-panel: 32px;  --r-card: 20px;  --r-control: 14px;  --r-pill: 999px;
+}
+
+/* Tone assignments */
+.clay-lavender { --tone: var(--lavender); --tone-deep: var(--lavender-deep); }
+.clay-peach { --tone: var(--peach); --tone-deep: var(--peach-deep); }
+.clay-mint { --tone: var(--mint); --tone-deep: var(--mint-deep); }
+.clay-butter { --tone: var(--butter); --tone-deep: var(--butter-deep); }
+.clay-sky { --tone: var(--sky); --tone-deep: var(--sky-deep); }
+.clay-pink { --tone: var(--pink); --tone-deep: var(--pink-deep); }
+.clay-paper { --tone: var(--paper); --tone-deep: 205 198 222; }
+.clay-primary { --tone: var(--primary); --tone-deep: var(--primary-deep); }
+
+/* Base clay recipes */
+.clay {
+  background-color: rgb(var(--tone, var(--paper)));
+  border-radius: var(--r-tile);
+  box-shadow:
+    0 14px 28px -10px rgb(var(--tone-deep, 205 198 222) / 0.55),
+    0 2px 4px rgb(var(--ink-1) / 0.06),
+    inset 0 4px 0 rgb(255 255 255 / 0.75),
+    inset 0 -6px 12px -2px rgb(var(--tone-deep, 205 198 222) / 0.35);
+}
+
+.clay-tile {
+  background-color: rgb(var(--tone, var(--paper)));
+  border-radius: var(--r-tile);
+  box-shadow:
+    0 14px 28px -10px rgb(var(--tone-deep, 205 198 222) / 0.55),
+    0 2px 4px rgb(var(--ink-1) / 0.06),
+    inset 0 4px 0 rgb(255 255 255 / 0.75),
+    inset 0 -6px 12px -2px rgb(var(--tone-deep, 205 198 222) / 0.35);
+}
+
+.clay-panel {
+  background-color: rgb(var(--tone, var(--paper)));
+  border-radius: var(--r-panel);
+  box-shadow:
+    0 16px 32px -12px rgb(var(--tone-deep, 205 198 222) / 0.55),
+    0 2px 4px rgb(var(--ink-1) / 0.06),
+    inset 0 4px 0 rgb(255 255 255 / 0.75),
+    inset 0 -6px 12px -2px rgb(var(--tone-deep, 205 198 222) / 0.35);
+}
+
+.clay-card {
+  background-color: rgb(var(--tone, var(--paper)));
+  border-radius: var(--r-card);
+  box-shadow:
+    0 8px 16px -6px rgb(var(--tone-deep, 205 198 222) / 0.45),
+    0 2px 4px rgb(var(--ink-1) / 0.04),
+    inset 0 3px 0 rgb(255 255 255 / 0.75),
+    inset 0 -4px 8px -2px rgb(var(--tone-deep, 205 198 222) / 0.3);
+}
+
+.clay-inset {
+  background-color: rgb(var(--tone, var(--paper)) / 0.75);
+  border-radius: var(--r-control);
+  box-shadow:
+    inset 0 3px 6px rgb(var(--tone-deep, 205 198 222) / 0.35),
+    inset 0 -2px 0 rgb(255 255 255 / 0.7);
+}
+
+.clay-press {
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out, background-color 140ms ease-out;
+}
+.clay-press:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 16px 30px -8px rgb(var(--tone-deep, 205 198 222) / 0.60),
+    0 3px 6px rgb(var(--ink-1) / 0.08),
+    inset 0 4px 0 rgb(255 255 255 / 0.8),
+    inset 0 -6px 12px -2px rgb(var(--tone-deep, 205 198 222) / 0.35);
+}
+.clay-press:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 4px 8px -2px rgb(var(--tone-deep, 205 198 222) / 0.45),
+    0 1px 2px rgb(var(--ink-1) / 0.06),
+    inset 0 2px 0 rgb(255 255 255 / 0.7),
+    inset 0 -3px 6px -1px rgb(var(--tone-deep, 205 198 222) / 0.35);
+}
+
+.clay-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(var(--primary) / 0.45);
+}

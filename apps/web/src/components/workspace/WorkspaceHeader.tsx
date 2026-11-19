@@ -3,6 +3,7 @@ import { ActiveAvatars } from '../collaboration/ActiveAvatars';
 import { ConnectionIndicator } from '../collaboration/ConnectionIndicator';
 import { Collaborator, ConnectionStatus } from '@/types';
 import { Share2, Lock } from 'lucide-react';
+import { Button } from '@/components/ui';
 
 interface WorkspaceHeaderProps {
   pageTitle: string;
@@ -22,28 +23,30 @@ export function WorkspaceHeader({
   onShare,
 }: WorkspaceHeaderProps) {
   return (
-    <header className="h-14 border-b border-slate-800 bg-surface/50 backdrop-blur px-6 flex items-center justify-between z-10">
-      <div className="flex items-center gap-3">
-        <span className="text-xl">{icon}</span>
-        <h1 className="font-semibold text-base text-slate-100">{pageTitle}</h1>
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] bg-slate-800/80 text-slate-400 font-mono">
-          <Lock className="w-3 h-3" />
+    <header className="clay clay-butter rounded-tile px-5 py-3 flex items-center justify-between gap-4 border border-butter-deep/25 shadow-clay-sm select-none">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-xl flex-shrink-0">{icon}</span>
+        <h1 className="font-bold text-base text-ink-1 truncate">{pageTitle}</h1>
+        <div className="clay clay-paper rounded-full px-2.5 py-0.5 flex items-center gap-1.5 text-[11px] font-mono font-bold text-ink-2 shadow-clay-sm border border-line/10 flex-shrink-0">
+          <Lock className="w-3 h-3 text-ink-3" />
           <span>{role}</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 flex-shrink-0">
         {/* Presence & synchronization indicators */}
         <ActiveAvatars collaborators={collaborators} />
         <ConnectionIndicator status={connectionStatus} />
 
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={onShare}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-md text-xs font-medium shadow-sm transition"
+          className="gap-1.5 text-xs font-bold"
         >
           <Share2 className="w-3.5 h-3.5" />
           <span>Share</span>
-        </button>
+        </Button>
       </div>
     </header>
   );

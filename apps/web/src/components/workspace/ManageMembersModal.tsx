@@ -160,29 +160,31 @@ export function ManageMembersModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg bg-surface border border-slate-800 rounded-xl p-6 shadow-2xl">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2 text-slate-100 font-semibold text-base">
-            <Shield className="w-5 h-5 text-brand-500" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-1/30 p-4 animate-in fade-in select-none">
+      <div className="clay clay-paper rounded-panel max-w-lg w-full p-6 border border-line/10 shadow-clay">
+        <div className="flex items-center justify-between pb-3.5 border-b border-line/10">
+          <div className="flex items-center gap-2.5 text-ink-1 font-bold text-base">
+            <div className="w-8 h-8 rounded-control bg-primary flex items-center justify-center text-white shadow-clay-sm">
+              <Shield className="w-4 h-4" />
+            </div>
             <span>Workspace Access & Members</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-surface-card transition"
+            className="p-1 rounded-control text-ink-3 hover:text-ink-1 transition-all"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Navigation tabs */}
-        <div className="flex items-center gap-2 mt-4 border-b border-slate-800 pb-2">
+        <div className="flex items-center gap-2 mt-4 border-b border-line/10 pb-2.5">
           <button
             onClick={() => setActiveTab('members')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
               activeTab === 'members'
-                ? 'bg-brand-600 text-white'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-surface-card'
+                ? 'clay clay-paper text-primary-deep shadow-clay-sm border border-primary/20'
+                : 'text-ink-2 hover:bg-canvas'
             }`}
           >
             Members ({members.length})
@@ -190,15 +192,15 @@ export function ManageMembersModal({
           {isOwner && (
             <button
               onClick={() => setActiveTab('invitations')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeTab === 'invitations'
-                  ? 'bg-brand-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-surface-card'
+                  ? 'clay clay-paper text-primary-deep shadow-clay-sm border border-primary/20'
+                  : 'text-ink-2 hover:bg-canvas'
               }`}
             >
               <span>Invitations</span>
               {invitations.length > 0 && (
-                <span className="px-1.5 py-0.2 bg-brand-500/30 text-brand-300 rounded-full text-[10px]">
+                <span className="px-1.5 py-0.2 bg-primary/20 text-primary-deep rounded-full text-[10px] font-bold">
                   {invitations.length}
                 </span>
               )}
@@ -207,12 +209,12 @@ export function ManageMembersModal({
         </div>
 
         {error && (
-          <div className="mt-3 p-2.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium">
+          <div className="mt-3 p-3 rounded-card clay clay-inset bg-peach/40 border border-peach-deep/30 text-err text-xs font-bold">
             {error}
           </div>
         )}
         {success && (
-          <div className="mt-3 p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
+          <div className="mt-3 p-3 rounded-card clay clay-inset bg-mint/40 border border-mint-deep/30 text-ok text-xs font-bold">
             {success}
           </div>
         )}
@@ -220,7 +222,7 @@ export function ManageMembersModal({
         {/* Tab 1: Members */}
         {activeTab === 'members' && (
           <div className="mt-4 space-y-2 max-h-72 overflow-y-auto pr-1">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-ink-3 uppercase tracking-wider">
               Active Members ({members.length})
             </span>
 
@@ -228,15 +230,15 @@ export function ManageMembersModal({
               {members.map((m) => (
                 <div
                   key={m.id}
-                  className="flex items-center justify-between p-2 rounded-lg bg-surface-card/60 hover:bg-surface-card transition border border-slate-800"
+                  className="flex items-center justify-between p-2.5 rounded-card clay clay-paper border border-line/10 shadow-clay-sm"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs text-white">
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center font-bold text-xs text-white shadow-clay-sm">
                       {m.user.name[0]?.toUpperCase()}
                     </div>
                     <div>
-                      <div className="text-xs font-medium text-slate-200">{m.user.name}</div>
-                      <div className="text-[11px] text-slate-400">{m.user.email}</div>
+                      <div className="text-xs font-bold text-ink-1">{m.user.name}</div>
+                      <div className="text-[11px] text-ink-3 font-medium">{m.user.email}</div>
                     </div>
                   </div>
 
@@ -245,14 +247,14 @@ export function ManageMembersModal({
                       <select
                         value={m.role}
                         onChange={(e) => handleRoleChange(m.id, e.target.value as WorkspaceRole)}
-                        className="bg-surface border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-brand-500"
+                        className="clay clay-inset bg-canvas border border-line/10 rounded-control px-2.5 py-1 text-[11px] text-ink-1 font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30"
                       >
                         <option value="EDITOR">Editor</option>
                         <option value="COMMENTER">Commenter</option>
                         <option value="VIEWER">Viewer</option>
                       </select>
                     ) : (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold clay clay-inset bg-canvas text-ink-2 border border-line/10">
                         {m.role}
                       </span>
                     )}
@@ -260,7 +262,7 @@ export function ManageMembersModal({
                     {isOwner && m.role !== 'OWNER' && (
                       <button
                         onClick={() => handleRemove(m.id, m.user.name)}
-                        className="p-1 text-slate-500 hover:text-rose-400 transition rounded"
+                        className="p-1.5 text-ink-3 hover:text-err transition-all rounded-control"
                         title="Remove member"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -276,25 +278,28 @@ export function ManageMembersModal({
         {/* Tab 2: Invitations */}
         {activeTab === 'invitations' && isOwner && (
           <div className="mt-4 space-y-4">
-            <form onSubmit={handleCreateInvite} className="p-3 bg-surface-card rounded-lg space-y-3">
-              <span className="text-xs font-semibold text-slate-200">Send Invitation Link</span>
+            <form onSubmit={handleCreateInvite} className="p-3.5 clay clay-inset bg-canvas rounded-card border border-line/10 space-y-3">
+              <span className="text-xs font-bold text-ink-1">Send Invitation Link</span>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <Mail className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Mail
+                    className="w-3.5 h-3.5 absolute left-3 top-1/2 text-ink-3"
+                    style={{ transform: "translateY(-50%)" }}
+                  />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="collaborator@example.com"
-                    className="w-full pl-8 pr-3 py-1.5 bg-surface border border-slate-700 rounded-md text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                    className="clay clay-paper w-full pl-8 pr-3 py-1.5 border border-line/10 rounded-control text-xs text-ink-1 placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium shadow-clay-sm"
                   />
                 </div>
 
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as any)}
-                  className="bg-surface border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-brand-500"
+                  className="clay clay-paper border border-line/10 rounded-control px-2.5 py-1.5 text-xs text-ink-1 font-semibold shadow-clay-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 >
                   <option value="EDITOR">Editor</option>
                   <option value="COMMENTER">Commenter</option>
@@ -304,7 +309,7 @@ export function ManageMembersModal({
                 <button
                   type="submit"
                   disabled={loading || !email.trim()}
-                  className="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white rounded-md text-xs font-medium flex items-center gap-1.5 transition"
+                  className="px-3.5 py-1.5 bg-primary hover:bg-primary-deep disabled:opacity-50 text-white rounded-control text-xs font-bold flex items-center gap-1.5 transition-all shadow-clay-sm"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>Generate</span>
@@ -312,15 +317,15 @@ export function ManageMembersModal({
               </div>
 
               {generatedInviteUrl && (
-                <div className="mt-2 p-2 bg-slate-900 border border-brand-500/30 rounded flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 truncate text-xs text-slate-300 font-mono">
-                    <LinkIcon className="w-3 h-3 text-brand-400 shrink-0" />
+                <div className="mt-2 p-2.5 clay clay-paper border border-primary/30 rounded-control flex items-center justify-between gap-2 shadow-clay-sm">
+                  <div className="flex items-center gap-1.5 truncate text-xs text-ink-1 font-mono">
+                    <LinkIcon className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span className="truncate">{generatedInviteUrl}</span>
                   </div>
                   <button
                     type="button"
                     onClick={handleCopyLink}
-                    className="px-2 py-1 bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-medium rounded flex items-center gap-1 transition shrink-0"
+                    className="px-2.5 py-1 bg-primary hover:bg-primary-deep text-white text-[11px] font-bold rounded-control flex items-center gap-1 transition-all shrink-0 shadow-clay-sm"
                   >
                     {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                     <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -331,25 +336,25 @@ export function ManageMembersModal({
 
             {/* Pending invitations list */}
             <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-ink-3 uppercase tracking-wider">
                 Pending Invitations ({invitations.length})
               </span>
 
               {loadingInvites ? (
-                <div className="text-center py-4 text-xs text-slate-500">Loading invitations...</div>
+                <div className="text-center py-4 text-xs font-semibold text-ink-3">Loading invitations...</div>
               ) : invitations.length === 0 ? (
-                <div className="text-center py-4 text-xs text-slate-500">No pending invitations</div>
+                <div className="text-center py-4 text-xs font-semibold text-ink-3">No pending invitations</div>
               ) : (
                 <div className="space-y-1.5 mt-2">
                   {invitations.map((inv) => (
                     <div
                       key={inv.id}
-                      className="flex items-center justify-between p-2 rounded-lg bg-surface-card/60 hover:bg-surface-card transition border border-slate-800"
+                      className="flex items-center justify-between p-2.5 rounded-card clay clay-paper border border-line/10 shadow-clay-sm"
                     >
                       <div>
-                        <div className="text-xs font-medium text-slate-200">{inv.email}</div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                          <span className="text-brand-400 font-medium">Role: {inv.role}</span>
+                        <div className="text-xs font-bold text-ink-1">{inv.email}</div>
+                        <div className="flex items-center gap-2 text-[10px] text-ink-3 font-medium">
+                          <span className="text-primary font-bold">Role: {inv.role}</span>
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
@@ -360,7 +365,7 @@ export function ManageMembersModal({
 
                       <button
                         onClick={() => handleRevokeInvite(inv.id)}
-                        className="px-2 py-1 text-[11px] text-rose-400 hover:bg-rose-500/10 rounded transition"
+                        className="px-2.5 py-1 text-[11px] font-bold text-err hover:bg-peach/30 rounded-control transition-all"
                         title="Revoke invitation"
                       >
                         Revoke
@@ -373,10 +378,10 @@ export function ManageMembersModal({
           </div>
         )}
 
-        <div className="mt-5 pt-3 border-t border-slate-800 flex justify-end">
+        <div className="mt-5 pt-3.5 border-t border-line/10 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-surface-card hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition"
+            className="px-4 py-2 clay clay-paper rounded-control text-xs font-bold text-ink-2 hover:text-ink-1 hover:bg-canvas border border-line/10 shadow-clay-sm transition-all"
           >
             Close
           </button>

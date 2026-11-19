@@ -160,7 +160,7 @@ export function RichTextEditor({
       content: ydoc ? undefined : defaultContent,
       editorProps: {
         attributes: {
-          class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] text-slate-200 text-sm leading-relaxed px-12 py-6',
+          class: 'prose max-w-none focus:outline-none min-h-[500px] text-ink-1 text-sm leading-relaxed px-12 py-6',
         },
         handleKeyDown: (_view, event) => {
           if (!canEdit) return true;
@@ -331,15 +331,15 @@ export function RichTextEditor({
 
   if (!editor) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-12 text-slate-500">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mb-3" />
-        <span className="text-xs">Initializing collaborative editor...</span>
+      <div className="flex-1 flex flex-col items-center justify-center p-12 text-ink-2">
+        <div className="w-8 h-8 rounded-full border-4 border-primary border-t-lavender animate-spin mb-3" />
+        <span className="text-xs font-bold text-ink-2">Initializing collaborative editor...</span>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background min-h-0 overflow-y-auto relative">
+    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto relative w-full">
       {/* Formatting & Controls Toolbar */}
       <EditorToolbar
         editor={editor}
@@ -353,18 +353,18 @@ export function RichTextEditor({
 
       {/* Historical Snapshot Preview Banner */}
       {isHistoryPreviewing && (
-        <div className="bg-amber-950/90 border-b border-amber-600/50 px-6 py-2.5 flex items-center justify-between text-xs text-amber-200 z-20 backdrop-blur sticky top-0 shadow-lg">
+        <div className="clay clay-butter rounded-tile px-5 py-3 mb-3 flex items-center justify-between text-xs text-ink-1 border border-butter-deep/30 shadow-clay-sm select-none sticky top-0 z-20">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="font-semibold text-amber-100">Historical Preview Mode:</span>
-            <span>{historyPreviewTitle || 'Snapshot Checkpoint'} (Read-Only)</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-warn animate-pulse" />
+            <span className="font-bold text-ink-1">Historical Preview Mode:</span>
+            <span className="font-medium text-ink-2">{historyPreviewTitle || 'Snapshot Checkpoint'} (Read-Only)</span>
           </div>
           <div className="flex items-center gap-2">
             {canEdit && onRestoreHistoryPreview && (
               <button
                 type="button"
                 onClick={onRestoreHistoryPreview}
-                className="px-3 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white font-medium transition shadow text-xs"
+                className="px-3 py-1 rounded-control bg-primary hover:bg-primary-deep text-white font-bold transition-all shadow-clay-sm text-xs"
               >
                 Restore this version
               </button>
@@ -372,7 +372,7 @@ export function RichTextEditor({
             <button
               type="button"
               onClick={onExitHistoryPreview}
-              className="px-2.5 py-1 rounded bg-surface-card hover:bg-surface text-slate-300 hover:text-white transition text-xs border border-slate-700"
+              className="px-2.5 py-1 rounded-control clay clay-paper hover:bg-canvas text-ink-2 hover:text-ink-1 transition-all text-xs border border-line/10 shadow-clay-sm font-semibold"
             >
               Exit preview
             </button>
@@ -381,79 +381,93 @@ export function RichTextEditor({
       )}
 
       {/* Main Document Content Canvas */}
-      <main className="flex-1 max-w-4xl w-full mx-auto py-10 px-6">
-        {/* Document Header: Icon & Editable Title */}
-        <div className="mb-6 px-12 group">
-          <div className="text-4xl mb-3 select-none inline-block hover:scale-110 transition cursor-pointer">
-            {initialIcon}
+      <main className="flex-1 max-w-4xl w-full mx-auto pb-16">
+        <div className="clay clay-paper rounded-panel p-8 md:p-12 border border-line/10 shadow-clay min-h-[600px]">
+          {/* Document Header: Icon & Editable Title */}
+          <div className="mb-6 group">
+            <div className="text-4xl mb-3 select-none inline-block hover:scale-110 transition cursor-pointer">
+              {initialIcon}
+            </div>
+            <input
+              type="text"
+              readOnly={!canEdit || isHistoryPreviewing}
+              value={title}
+              onChange={(e) => handleTitleChange(e.target.value)}
+              placeholder="Untitled Document"
+              className="w-full text-3xl font-extrabold bg-transparent text-ink-1 placeholder-ink-3 focus:outline-none border-b-2 border-transparent focus:border-primary/30 pb-1 transition-all disabled:opacity-75"
+            />
           </div>
-          <input
-            type="text"
-            readOnly={!canEdit || isHistoryPreviewing}
-            value={title}
-            onChange={(e) => handleTitleChange(e.target.value)}
-            placeholder="Untitled Document"
-            className="w-full text-3xl font-bold bg-transparent text-slate-100 placeholder-slate-600 focus:outline-none border-b border-transparent focus:border-slate-800 pb-1 transition disabled:opacity-75"
-          />
-        </div>
 
-        {/* Floating Bubble Menu for Selection Actions */}
-        {editor && !isHistoryPreviewing && (
-          <BubbleMenu
-            editor={editor}
-            tippyOptions={{ duration: 150 }}
-            shouldShow={({ editor, from, to }) => {
-              return from < to && !editor.state.selection.empty;
-            }}
-            className="flex items-center gap-1 bg-surface border border-slate-700/90 rounded-lg p-1 shadow-2xl backdrop-blur-md z-30"
-          >
-            {userRole !== 'VIEWER' && (
+          {/* Floating Bubble Menu for Selection Actions */}
+          {editor && !isHistoryPreviewing && (
+            <BubbleMenu
+              editor={editor}
+              tippyOptions={{ duration: 150 }}
+              shouldShow={({ editor, from, to }) => {
+                return from < to && !editor.state.selection.empty;
+              }}
+              className="clay clay-paper clay-card flex items-center gap-1.5 p-1.5 border border-line/10 shadow-clay z-30 select-none"
+            >
+              {userRole !== 'VIEWER' && (
+                <button
+                  type="button"
+                  onClick={handleCommentSelection}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-warn hover:bg-canvas rounded-control transition-all"
+                  title="Add comment on selected text"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-warn" />
+                  <span>Comment</span>
+                </button>
+              )}
+              <div className="w-[1px] h-3.5 bg-line/15 mx-0.5" />
               <button
                 type="button"
-                onClick={handleCommentSelection}
-                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-300 hover:text-amber-200 hover:bg-amber-950/40 rounded transition"
-                title="Add comment on selected text"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                className={`px-2 py-0.5 rounded-control text-xs font-bold transition-all ${
+                  editor.isActive('bold')
+                    ? 'clay clay-inset bg-lavender/40 text-primary-deep shadow-clay-press'
+                    : 'text-ink-2 hover:text-ink-1 hover:bg-canvas'
+                }`}
+                title="Bold"
               >
-                <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
-                <span>Comment</span>
+                <strong>B</strong>
               </button>
-            )}
-            <div className="w-[1px] h-3.5 bg-slate-700 mx-0.5" />
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().toggleBold().run()}
-              className={`px-1.5 py-0.5 rounded text-xs transition ${editor.isActive('bold') ? 'bg-surface-card text-brand-400' : 'text-slate-300 hover:text-white'}`}
-              title="Bold"
-            >
-              <strong>B</strong>
-            </button>
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().toggleItalic().run()}
-              className={`px-1.5 py-0.5 rounded text-xs transition ${editor.isActive('italic') ? 'bg-surface-card text-brand-400' : 'text-slate-300 hover:text-white'}`}
-              title="Italic"
-            >
-              <em>I</em>
-            </button>
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
-              className={`px-1.5 py-0.5 rounded text-xs transition ${editor.isActive('underline') ? 'bg-surface-card text-brand-400' : 'text-slate-300 hover:text-white'}`}
-              title="Underline"
-            >
-              <u>U</u>
-            </button>
-          </BubbleMenu>
-        )}
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                className={`px-2 py-0.5 rounded-control text-xs font-bold transition-all ${
+                  editor.isActive('italic')
+                    ? 'clay clay-inset bg-lavender/40 text-primary-deep shadow-clay-press'
+                    : 'text-ink-2 hover:text-ink-1 hover:bg-canvas'
+                }`}
+                title="Italic"
+              >
+                <em>I</em>
+              </button>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleUnderline().run()}
+                className={`px-2 py-0.5 rounded-control text-xs font-bold transition-all ${
+                  editor.isActive('underline')
+                    ? 'clay clay-inset bg-lavender/40 text-primary-deep shadow-clay-press'
+                    : 'text-ink-2 hover:text-ink-1 hover:bg-canvas'
+                }`}
+                title="Underline"
+              >
+                <u>U</u>
+              </button>
+            </BubbleMenu>
+          )}
 
-        {/* TipTap Document Area or Historical Preview */}
-        {isHistoryPreviewing && historyPreviewContent !== null ? (
-          <div className="prose prose-invert max-w-none px-12 py-6 text-slate-200 text-sm leading-relaxed bg-surface-card/30 rounded-xl border border-amber-500/30 whitespace-pre-wrap select-text font-sans">
-            {historyPreviewContent || '(Empty document in this snapshot checkpoint)'}
-          </div>
-        ) : (
-          <EditorContent editor={editor} />
-        )}
+          {/* TipTap Document Area or Historical Preview */}
+          {isHistoryPreviewing && historyPreviewContent !== null ? (
+            <div className="clay clay-inset bg-canvas p-6 rounded-card border border-line/10 text-ink-1 text-sm leading-relaxed whitespace-pre-wrap select-text font-mono">
+              {historyPreviewContent || '(Empty document in this snapshot checkpoint)'}
+            </div>
+          ) : (
+            <EditorContent editor={editor} />
+          )}
+        </div>
       </main>
 
       {/* Floating Slash Commands Menu */}
@@ -466,13 +480,13 @@ export function RichTextEditor({
 
       {/* Live Active Editing / Typing Indicator Toast */}
       {typingUsers && typingUsers.length > 0 && (
-        <div className="fixed bottom-6 right-8 bg-surface/95 border border-slate-700/80 text-xs px-3.5 py-2 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-slate-200 z-40 transition-all">
+        <div className="clay clay-paper rounded-full border border-line/10 px-4 py-2 shadow-clay fixed bottom-6 right-8 flex items-center gap-2.5 text-ink-1 z-40 transition-all select-none">
           <div className="flex gap-1 items-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce" />
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce [animation-delay:0.2s]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce [animation-delay:0.4s]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.2s]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.4s]" />
           </div>
-          <span className="font-medium text-[11px]">
+          <span className="font-bold text-[11px] text-ink-2">
             {typingUsers.length === 1
               ? `${typingUsers[0]} is editing...`
               : `${typingUsers.slice(0, 2).join(', ')}${typingUsers.length > 2 ? ` +${typingUsers.length - 2}` : ''} are editing...`}

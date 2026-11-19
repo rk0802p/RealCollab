@@ -228,15 +228,17 @@ export default function WorkspacePage() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-slate-400">
-        <div className="w-8 h-8 rounded-full border-b-2 border-brand-500 animate-spin mb-3" />
-        <span className="text-xs">Loading workspace...</span>
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-canvas text-ink-1">
+        <div className="clay clay-paper clay-card p-8 flex flex-col items-center gap-4 text-center border border-line/10 shadow-clay">
+          <div className="w-10 h-10 border-4 border-primary border-t-lavender rounded-full animate-spin" />
+          <span className="text-xs font-bold text-ink-2">Loading workspace...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background">
+    <div className="flex h-screen w-screen overflow-hidden bg-canvas text-ink-1 p-3 md:p-4 gap-3 md:gap-4 select-none">
       {/* Workspace Sidebar */}
       <WorkspaceSidebar
         currentWorkspaceName={currentWorkspace?.name || 'Workspace'}
@@ -254,7 +256,7 @@ export default function WorkspacePage() {
       />
 
       {/* Main editor and canvas area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full relative">
+      <div className="flex-1 flex flex-col min-w-0 h-full gap-3 md:gap-4 relative overflow-hidden">
         <WorkspaceHeader
           pageTitle={activePage.title}
           icon={activePage.icon}
@@ -264,7 +266,7 @@ export default function WorkspacePage() {
           onShare={() => setMembersModalOpen(true)}
         />
 
-        <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex overflow-hidden relative gap-3 md:gap-4 min-h-0">
           <RichTextEditor
             key={`${activePageId}-${activeWorkspaceId}`}
             pageId={activePageId}

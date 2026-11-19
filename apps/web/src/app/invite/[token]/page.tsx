@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { ClayTile, Button, Badge, Divider, ClayTone } from '@/components/ui';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function InviteAcceptPage() {
   const router = useRouter();
@@ -75,119 +77,175 @@ export default function InviteAcceptPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm">Loading invitation...</p>
-        </div>
+      <div className="min-h-screen bg-canvas text-ink-1 flex items-center justify-center p-4">
+        <ClayTile tone="paper" size="card" className="p-8 flex flex-col items-center gap-4 text-center border border-line/10">
+          <div className="w-10 h-10 border-4 border-primary border-t-lavender rounded-full animate-spin"></div>
+          <p className="text-ink-2 text-sm font-semibold">Loading invitation...</p>
+        </ClayTile>
       </div>
     );
   }
 
   if (error && !invitation) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-800 border border-slate-700 rounded-xl p-8 text-center shadow-2xl">
-          <div className="w-14 h-14 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-400 text-2xl">
+      <div className="min-h-screen bg-canvas text-ink-1 flex items-center justify-center p-4 relative overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="w-24 h-24 rounded-full clay clay-pink absolute -top-4 -left-6 pointer-events-none opacity-80 animate-float-1 hidden sm:block"
+        />
+        <div
+          aria-hidden="true"
+          className="w-28 h-28 rounded-full clay clay-lavender absolute -bottom-10 -right-8 pointer-events-none opacity-80 animate-float-2 hidden sm:block"
+        />
+        <ClayTile tone="paper" size="panel" className="max-w-md w-full p-8 sm:p-10 text-center border border-line/10 shadow-clay relative z-10">
+          <div className="w-14 h-14 bg-peach/70 border border-err/30 rounded-card flex items-center justify-center mx-auto mb-4 text-err text-2xl clay-card">
             ⚠️
           </div>
-          <h1 className="text-xl font-bold text-white mb-2">Invalid Invitation</h1>
-          <p className="text-slate-400 text-sm mb-6">{error}</p>
+          <h1 className="text-xl font-extrabold text-ink-1 mb-2">Invalid Invitation</h1>
+          <p className="text-ink-2 text-sm font-semibold mb-6">{error}</p>
           <Link
             href="/"
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition"
+            className="inline-flex items-center justify-center px-5 py-2.5 bg-primary hover:bg-primary-deep text-white text-sm font-bold rounded-pill shadow-clay-sm clay-press transition"
           >
             Go to Home
           </Link>
-        </div>
+        </ClayTile>
       </div>
     );
   }
 
+  const roleToneMap: Record<string, ClayTone> = {
+    OWNER: 'butter',
+    EDITOR: 'lavender',
+    COMMENTER: 'mint',
+    VIEWER: 'sky',
+  };
+  const roleTone = roleToneMap[invitation?.role] || 'lavender';
+
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-800 border border-slate-700 rounded-xl p-8 shadow-2xl">
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-            🚀
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-1">Workspace Invitation</h1>
-          <p className="text-slate-400 text-sm">
-            <span className="font-semibold text-slate-200">{invitation?.inviter?.name || 'A team member'}</span> has
-            invited you to collaborate.
-          </p>
-        </div>
+    <div className="min-h-screen bg-canvas text-ink-1 flex items-center justify-center p-4 relative overflow-hidden selection:bg-primary/25">
+      {/* Decorative pastel clay shapes */}
+      <div
+        aria-hidden="true"
+        className="w-24 h-24 rounded-full clay clay-lavender absolute -top-4 -left-6 pointer-events-none opacity-80 animate-float-1 hidden sm:block"
+      />
+      <div
+        aria-hidden="true"
+        className="w-32 h-14 rounded-pill clay clay-butter absolute top-16 -right-8 pointer-events-none opacity-80 animate-float-2 hidden sm:block"
+      />
+      <div
+        aria-hidden="true"
+        className="w-20 h-20 rounded-card clay clay-mint absolute -bottom-6 -left-8 pointer-events-none opacity-80 animate-float-2 hidden sm:block"
+      />
+      <div
+        aria-hidden="true"
+        className="w-28 h-28 rounded-full clay clay-pink absolute -bottom-10 -right-8 pointer-events-none opacity-80 animate-float-1 hidden sm:block"
+      />
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 text-xs">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-300 text-xs">
-            {success}
-          </div>
-        )}
-
-        <div className="bg-slate-900/60 border border-slate-700/60 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Workspace</span>
-            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              Role: {invitation?.role}
-            </span>
-          </div>
-          <h2 className="text-lg font-bold text-white mb-1">{invitation?.workspace?.name}</h2>
-          {invitation?.workspace?.description && (
-            <p className="text-slate-400 text-xs">{invitation.workspace.description}</p>
-          )}
-
-          <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between text-xs text-slate-500">
-            <span>Invited email: {invitation?.email}</span>
-            <span>Expires: {new Date(invitation?.expiresAt).toLocaleDateString()}</span>
-          </div>
-        </div>
-
-        {invitation?.isExpired ? (
-          <div className="text-center p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-300 text-sm">
-            This invitation has expired. Please ask the workspace owner to send a new invite link.
-          </div>
-        ) : currentUser ? (
-          <div className="space-y-3">
-            <button
-              onClick={handleAccept}
-              disabled={accepting}
-              className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded-lg transition shadow-lg shadow-indigo-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {accepting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Joining...</span>
-                </>
-              ) : (
-                <span>Accept & Join Workspace</span>
-              )}
-            </button>
-            <p className="text-center text-xs text-slate-400">
-              Logged in as <span className="text-slate-200 font-medium">{currentUser.email}</span>
+      <div className="max-w-md w-full relative z-10">
+        <ClayTile
+          tone="paper"
+          size="panel"
+          className="p-8 sm:p-10 border border-line/10 shadow-clay"
+        >
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 bg-lavender rounded-card flex items-center justify-center mx-auto mb-4 text-2xl clay-card">
+              🚀
+            </div>
+            <h1 className="text-2xl font-extrabold text-ink-1 mb-1 tracking-tight">
+              Workspace Invitation
+            </h1>
+            <p className="text-ink-2 text-sm font-medium">
+              <span className="font-extrabold text-ink-1">
+                {invitation?.inviter?.name || 'A team member'}
+              </span>{' '}
+              has invited you to collaborate.
             </p>
           </div>
-        ) : (
-          <div className="space-y-3">
-            <Link
-              href={`/login?redirect=/invite/${token}`}
-              className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded-lg transition text-center block"
-            >
-              Log In to Accept Invitation
-            </Link>
-            <Link
-              href={`/signup?redirect=/invite/${token}`}
-              className="w-full py-2.5 px-4 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium text-sm rounded-lg transition text-center block"
-            >
-              Create New Account
-            </Link>
-          </div>
-        )}
+
+          {error && (
+            <div className="mb-4 p-3.5 rounded-control bg-peach/70 border border-err/30 text-err text-xs font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 stroke-[2.25]" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-4 p-3.5 rounded-control bg-mint/70 border border-ok/30 text-ok text-xs font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 stroke-[2.25]" />
+              <span>{success}</span>
+            </div>
+          )}
+
+          <ClayTile tone={roleTone} size="card" className="p-5 mb-6 border border-line/10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-ink-2 uppercase tracking-wider font-extrabold">
+                Workspace
+              </span>
+              <Badge tone="paper" size="sm">
+                Role: {invitation?.role}
+              </Badge>
+            </div>
+            <h2 className="text-lg font-extrabold text-ink-1 mb-1">
+              {invitation?.workspace?.name}
+            </h2>
+            {invitation?.workspace?.description && (
+              <p className="text-ink-2 text-xs font-medium">
+                {invitation.workspace.description}
+              </p>
+            )}
+
+            <Divider className="my-3" />
+
+            <div className="flex justify-between text-xs font-semibold text-ink-3">
+              <span>Invited email: {invitation?.email}</span>
+              <span>Expires: {new Date(invitation?.expiresAt).toLocaleDateString()}</span>
+            </div>
+          </ClayTile>
+
+          {invitation?.isExpired ? (
+            <div className="text-center p-4 bg-butter/70 border border-warn/30 rounded-control text-ink-1 text-sm font-bold">
+              This invitation has expired. Please ask the workspace owner to send a new invite link.
+            </div>
+          ) : currentUser ? (
+            <div className="space-y-3">
+              <Button
+                onClick={handleAccept}
+                disabled={accepting}
+                variant="primary"
+                size="lg"
+                className="w-full"
+              >
+                {accepting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Joining...</span>
+                  </>
+                ) : (
+                  <span>Accept & Join Workspace</span>
+                )}
+              </Button>
+              <p className="text-center text-xs font-semibold text-ink-3">
+                Logged in as <span className="text-ink-1 font-bold">{currentUser.email}</span>
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Link
+                href={`/login?redirect=/invite/${token}`}
+                className="w-full py-2.5 px-4 bg-primary hover:bg-primary-deep text-white font-bold text-sm rounded-pill shadow-clay-sm clay-press transition text-center block"
+              >
+                Log In to Accept Invitation
+              </Link>
+              <Link
+                href={`/signup?redirect=/invite/${token}`}
+                className="w-full py-2.5 px-4 bg-paper hover:bg-paper/90 text-ink-1 font-bold text-sm rounded-pill border border-line/10 clay-card clay-press transition text-center block"
+              >
+                Create New Account
+              </Link>
+            </div>
+          )}
+        </ClayTile>
       </div>
     </div>
   );

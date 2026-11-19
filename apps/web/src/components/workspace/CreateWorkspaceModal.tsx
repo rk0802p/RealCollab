@@ -40,30 +40,32 @@ export function CreateWorkspaceModal({ isOpen, onClose, onCreated }: CreateWorks
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-surface border border-slate-800 rounded-xl p-6 shadow-2xl">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-2 text-slate-100 font-semibold text-base">
-            <FolderPlus className="w-5 h-5 text-brand-500" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-1/30 p-4 animate-in fade-in select-none">
+      <div className="clay clay-paper rounded-panel max-w-md w-full p-6 border border-line/10 shadow-clay">
+        <div className="flex items-center justify-between pb-3.5 border-b border-line/10">
+          <div className="flex items-center gap-2.5 text-ink-1 font-bold text-base">
+            <div className="w-8 h-8 rounded-control bg-primary flex items-center justify-center text-white shadow-clay-sm">
+              <FolderPlus className="w-4 h-4" />
+            </div>
             <span>Create New Workspace</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-surface-card transition"
+            className="p-1 rounded-control text-ink-3 hover:text-ink-1 transition-all"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 p-2.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium">
+          <div className="mt-4 p-3 rounded-card clay clay-inset bg-peach/40 border border-peach-deep/30 text-err text-xs font-bold">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-bold text-ink-2 mb-1.5">
               Workspace Name
             </label>
             <input
@@ -72,12 +74,12 @@ export function CreateWorkspaceModal({ isOpen, onClose, onCreated }: CreateWorks
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Design Team, Acme Corp"
-              className="w-full px-3 py-2 bg-surface-card border border-slate-700 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500"
+              className="clay clay-inset bg-canvas w-full px-3.5 py-2.5 border border-line/10 rounded-control text-sm text-ink-1 placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-bold text-ink-2 mb-1.5">
               Description (Optional)
             </label>
             <textarea
@@ -85,7 +87,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onCreated }: CreateWorks
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What is this workspace used for?"
-              className="w-full px-3 py-2 bg-surface-card border border-slate-700 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-none"
+              className="clay clay-inset bg-canvas w-full px-3.5 py-2.5 border border-line/10 rounded-control text-sm text-ink-1 placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none font-medium"
             />
           </div>
 
@@ -93,14 +95,14 @@ export function CreateWorkspaceModal({ isOpen, onClose, onCreated }: CreateWorks
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-surface-card transition"
+              className="px-3.5 py-2 rounded-control text-xs font-bold text-ink-2 hover:text-ink-1 hover:bg-canvas transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !name.trim()}
-              className="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition"
+              className="px-4 py-2 bg-primary hover:bg-primary-deep disabled:opacity-50 text-white rounded-control text-xs font-bold transition-all shadow-clay-sm"
             >
               {loading ? 'Creating...' : 'Create Workspace'}
             </button>
